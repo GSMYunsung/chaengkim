@@ -2,7 +2,7 @@ appId: com.yuncastlee.chaengkim
 name: "2 홈 (외출 전)"
 ---
 - waitForAnimationToEnd
-- assertVisible: "챙김"
+- assertVisible: "다챙김"
 - assertVisible: "외출 전"
 - assertVisible: "(?s)가방에.*담았어요"
 - assertVisible: "지금 출발.*"

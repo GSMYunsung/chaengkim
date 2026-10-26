@@ -119,7 +119,7 @@ export default function HomeScreen() {
               onLongPress={() => router.push("/test-lab")}
               delayLongPress={800}
               accessibilityRole="header"
-              accessibilityLabel="챙김"
+              accessibilityLabel="다챙김"
               accessibilityHint="길게 누르면 테스트 랩이 열려요"
             >
               <Image
@@ -328,7 +328,7 @@ function SummaryTile({ icon, label, value, sub, accent, onPress }: {
 
 const styles = StyleSheet.create({
   // Wordmark artwork is 868×150.
-  wordmark: { height: 24, width: (24 * 868) / 150 },
+  wordmark: { height: 24, width: (24 * 1027) / 150 },
   stageActions: { alignSelf: "stretch", gap: 10, marginTop: 20, alignItems: "stretch" },
   testBtn: {
     flexDirection: "row",
