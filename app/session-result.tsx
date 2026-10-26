@@ -150,7 +150,7 @@ export default function SessionResultScreen() {
             <ItemIcon name="shield-check" small />
             <View style={{ flex: 1 }}>
               <Text style={styles.savedTitle}>이번 달 지켜낸 물건</Text>
-              <Text style={[type.small, { marginTop: 3 }]}>자리 뜰 때 확인하고 함께 돌아온 물건</Text>
+              <Text style={[type.small, { marginTop: 3 }]}>집까지 함께 돌아온 물건</Text>
             </View>
             <Text style={styles.savedValue}>{savedCount}개</Text>
           </View>

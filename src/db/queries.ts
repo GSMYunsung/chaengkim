@@ -82,7 +82,20 @@ export async function getActiveSession(): Promise<Session | null> {
     'SELECT * FROM sessions WHERE endedAt IS NULL ORDER BY startedAt DESC LIMIT 1'
   );
   if (!row) return null;
-  return { ...row, itemIds: JSON.parse(row.itemIds) };
+  return toSession(row);
+}
+
+function toSession(row: any): Session {
+  return {
+    ...row,
+    itemIds: JSON.parse(row.itemIds),
+    returnedItemIds: row.returnedItemIds ? JSON.parse(row.returnedItemIds) : null,
+  };
+}
+
+export async function setSessionReturnedItems(id: string, itemIds: string[]): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE sessions SET returnedItemIds = ? WHERE id = ?', [JSON.stringify(itemIds), id]);
 }
 
 export async function createSession(trigger: Session['trigger'], itemIds: string[]): Promise<Session> {
@@ -105,7 +118,7 @@ export async function getSession(id: string): Promise<Session | null> {
   const db = await getDatabase();
   const row = await db.getFirstAsync<any>('SELECT * FROM sessions WHERE id = ?', [id]);
   if (!row) return null;
-  return { ...row, itemIds: JSON.parse(row.itemIds) };
+  return toSession(row);
 }
 
 export async function getRecentSessions(limit = 10): Promise<Session[]> {
@@ -114,7 +127,7 @@ export async function getRecentSessions(limit = 10): Promise<Session[]> {
     'SELECT * FROM sessions ORDER BY startedAt DESC LIMIT ?',
     [limit]
   );
-  return rows.map(r => ({ ...r, itemIds: JSON.parse(r.itemIds) }));
+  return rows.map(toSession);
 }
 
 // ── Stays ──────────────────────────────────────────────
@@ -250,22 +263,27 @@ export async function getStay(id: string): Promise<Stay | null> {
   return db.getFirstAsync<Stay>('SELECT * FROM stays WHERE id = ?', [id]);
 }
 
-// Every item of a finished outing that triggered a leave check counts as kept,
-// limited to outings started since `since`.
+// Items kept this month: what came home with the user, as confirmed at each return check.
+// Outings from before that was stored fall back to the old rule (all items of an outing
+// that had a leave check), so existing totals don't drop.
 export async function getSavedItemsCountSince(since: number): Promise<number> {
   const db = await getDatabase();
-  const rows = await db.getAllAsync<{ itemIds: string }>(
-    `SELECT s.itemIds FROM sessions s
-     WHERE s.endedAt IS NOT NULL
-       AND s.startedAt >= ?
-       AND EXISTS (
+  const rows = await db.getAllAsync<{ itemIds: string; returnedItemIds: string | null; checked: number }>(
+    `SELECT s.itemIds, s.returnedItemIds,
+       EXISTS (
          SELECT 1 FROM stays st
          JOIN leave_logs ll ON ll.stayId = st.id
          WHERE st.sessionId = s.id
-       )`,
+       ) AS checked
+     FROM sessions s
+     WHERE s.endedAt IS NOT NULL
+       AND s.startedAt >= ?`,
     [since]
   );
-  return rows.reduce((sum, r) => sum + JSON.parse(r.itemIds).length, 0);
+  return rows.reduce((sum, r) => {
+    if (r.returnedItemIds !== null) return sum + JSON.parse(r.returnedItemIds).length;
+    return r.checked ? sum + JSON.parse(r.itemIds).length : sum;
+  }, 0);
 }
 
 export async function getStaysSince(since: number): Promise<Stay[]> {

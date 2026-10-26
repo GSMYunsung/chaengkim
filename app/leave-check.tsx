@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   getActiveSession, getActiveStay, getItems, getLeaveLogByStayId, getPlaces, getStay, updateLeaveLogResponse,
@@ -9,11 +9,12 @@ import { isHomeStay } from '../src/services/stayNameService';
 import { StayNameDialog } from '../src/components/StayNameDialog';
 import {
   Screen, Intro, SectionHeader, PrimaryButton, LinkButton, Actions, Icon, Pills, Counter, Em,
-  Text,
+  Text, SecondaryButton, Dialog, ItemIcon,
 } from '../src/components/ui';
 import { ChecklistGroup, ChecklistRow } from '../src/components/ChecklistRow';
 import { colors, type } from '../src/theme';
-import type { Item, Stay, UserDelay } from '../src/types';
+import { itemIcon } from '../src/utils/itemIcon';
+import type { Item, LeaveAction, Stay, UserDelay } from '../src/types';
 
 const DELAYS: { value: UserDelay; label: string }[] = [
   { value: 'now', label: '방금' },
@@ -34,6 +35,7 @@ export default function LeaveCheckScreen() {
   const [logId, setLogId] = useState<string | null>(null);
   const [step, setStep] = useState<'items' | 'done'>('items');
   const [delay, setDelay] = useState<UserDelay | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -74,17 +76,25 @@ export default function LeaveCheckScreen() {
     setChecked(prev => new Set(prev).add(id));
   }
 
-  async function handleAllChecked() {
-    setChecked(new Set(items.map(i => i.id)));
-    if (logId) {
-      await updateLeaveLogResponse(logId, undefined, recovered.size ? 'opened' : 'allChecked', [...recovered]);
-    }
+  // Same flow as the return check: unchecked items get one confirmation before finishing.
+  function confirmFinish() {
+    if (items.some(i => !checked.has(i.id))) setConfirming(true);
+    else finish();
+  }
+
+  async function finish() {
+    if (logId) await updateLeaveLogResponse(logId, undefined, responseAction(), [...recovered]);
     setStep('done');
+  }
+
+  // "allChecked" only when every item was ticked without going back for any.
+  function responseAction(): LeaveAction {
+    return items.every(i => checked.has(i.id)) && !recovered.size ? 'allChecked' : 'opened';
   }
 
   async function handleSaveDelay() {
     if (logId && delay) {
-      await updateLeaveLogResponse(logId, delay, recovered.size ? 'opened' : 'allChecked', [...recovered]);
+      await updateLeaveLogResponse(logId, delay, responseAction(), [...recovered]);
     }
     router.back();
   }
@@ -124,6 +134,8 @@ export default function LeaveCheckScreen() {
   }
 
   const checkedCount = items.filter(i => checked.has(i.id)).length;
+  const allChecked = items.every(i => checked.has(i.id));
+  const unchecked = items.filter(i => !checked.has(i.id));
 
   return (
     <Screen>
@@ -174,14 +186,43 @@ export default function LeaveCheckScreen() {
           />
         ))}
       </ChecklistGroup>
-      <Actions note="이 버튼은 모든 물건을 직접 확인했다는 뜻이에요.">
-        <PrimaryButton label="모두 챙김" onPress={handleAllChecked} />
+      <Actions note="확인을 마쳐도 외출 기록은 계속돼요.">
+        <PrimaryButton
+          label={allChecked ? '모두 확인했어요' : '확인한 물건으로 완료'}
+          onPress={confirmFinish}
+        />
+        {!allChecked && (
+          <SecondaryButton label="모두 있어요" onPress={() => setChecked(new Set(items.map(i => i.id)))} />
+        )}
       </Actions>
+
+      <Dialog
+        visible={confirming}
+        mascot="question"
+        title={`${unchecked.length}개를 아직 확인하지 않았어요`}
+        message="두고 가는 물건은 없나요?"
+        cancelLabel="계속 확인"
+        confirmLabel="이대로 완료"
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => { setConfirming(false); finish(); }}
+      >
+        <ScrollView style={styles.missing} contentContainerStyle={styles.missingContent}>
+          {unchecked.map(item => (
+            <View key={item.id} style={styles.missingRow}>
+              <ItemIcon name={itemIcon(item.name)} tone="muted" small />
+              <Text style={type.rowName}>{item.name}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      </Dialog>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  missing: { marginTop: 16, backgroundColor: colors.surface, borderRadius: 14, maxHeight: 220 },
+  missingContent: { paddingVertical: 6, paddingHorizontal: 12 },
+  missingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 46 },
   place: {
     flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: colors.surface,
     borderRadius: 14, paddingVertical: 14, paddingHorizontal: 15, marginTop: -7,

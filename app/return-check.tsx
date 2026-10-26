@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getActiveSession, getItems } from '../src/db/queries';
+import { getActiveSession, getItems, setSessionReturnedItems } from '../src/db/queries';
 import { endOutingSession } from '../src/services/sessionService';
 import {
   Screen, Intro, SectionHeader, PrimaryButton, SecondaryButton, Actions, Counter, Em, Dialog, ItemIcon, Text,
@@ -48,6 +48,7 @@ export default function ReturnCheckScreen() {
   async function handleComplete() {
     if (!sessionId) return;
     setLoading(true);
+    await setSessionReturnedItems(sessionId, items.filter(i => present.has(i.id)).map(i => i.id));
     await endOutingSession(sessionId);
     const missing = items.filter(i => !present.has(i.id));
     setLoading(false);

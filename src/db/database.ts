@@ -1,12 +1,20 @@
 import * as SQLite from 'expo-sqlite';
 
-let db: SQLite.SQLiteDatabase | null = null;
+// One shared open+migrate. The UI and background location tasks can ask at the same moment;
+// sharing the promise keeps the schema setup (and its ALTER TABLEs) from running twice.
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (db) return db;
-  db = await SQLite.openDatabaseAsync('chaengkim.db');
-  await initSchema(db);
-  return db;
+export function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      const db = await SQLite.openDatabaseAsync('chaengkim.db');
+      await initSchema(db);
+      return db;
+    })();
+    // A failed setup shouldn't stick; the next caller retries.
+    dbPromise.catch(() => { dbPromise = null; });
+  }
+  return dbPromise;
 }
 
 async function initSchema(database: SQLite.SQLiteDatabase) {
@@ -81,6 +89,11 @@ async function initSchema(database: SQLite.SQLiteDatabase) {
   const stayCols = await database.getAllAsync<{ name: string }>('PRAGMA table_info(stays)');
   if (!stayCols.some(c => c.name === 'customName')) {
     await database.execAsync('ALTER TABLE stays ADD COLUMN customName TEXT');
+  }
+  // Added after release: items confirmed at the return check (JSON). Null on older outings.
+  const sessionCols = await database.getAllAsync<{ name: string }>('PRAGMA table_info(sessions)');
+  if (!sessionCols.some(c => c.name === 'returnedItemIds')) {
+    await database.execAsync('ALTER TABLE sessions ADD COLUMN returnedItemIds TEXT');
   }
 
   const count = await database.getFirstAsync<{ c: number }>('SELECT COUNT(*) as c FROM items');

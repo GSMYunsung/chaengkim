@@ -34,6 +34,8 @@ export type Session = {
   endedAt?: number;
   trigger: SessionTrigger;
   itemIds: string[];
+  /** Items confirmed present at the return check. Missing on outings recorded before this was stored. */
+  returnedItemIds?: string[] | null;
 };
 
 export type Stay = {

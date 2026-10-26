@@ -216,7 +216,7 @@ export default function HomeScreen() {
           icon="shield-check"
           label="이번 달 지켜낸 물건"
           value={`${savedCount}개`}
-          sub="함께 돌아온 물건"
+          sub="집까지 함께 온 물건"
           accent
         />
       </View>
