@@ -8,6 +8,9 @@ export async function setupNotifications(): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: '챙김 알림',
+      // eslint-plugin-import can't read the compiled enum behind expo-notifications' `export *`;
+      // it is exported at runtime and in the types.
+      // eslint-disable-next-line import/namespace
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
     });

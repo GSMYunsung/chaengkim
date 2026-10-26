@@ -96,6 +96,10 @@ async function initSchema(database: SQLite.SQLiteDatabase) {
     await database.execAsync('ALTER TABLE sessions ADD COLUMN returnedItemIds TEXT');
   }
 
+  // Kakao Local results may not be stored, so drop shop names cached by earlier versions.
+  // Entries starting with "~" are Apple-address "no shop here" markers and stay.
+  await database.runAsync("DELETE FROM app_state WHERE key LIKE 'poi:%' AND substr(value, 1, 1) <> '~'");
+
   const count = await database.getFirstAsync<{ c: number }>('SELECT COUNT(*) as c FROM items');
   if (count && count.c === 0) {
     const now = Date.now();

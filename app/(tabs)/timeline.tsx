@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, Alert, Pressable } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import {
@@ -53,12 +53,6 @@ export default function TimelineScreen() {
       return { session, stays, logs };
     }));
     setData(perSession);
-
-    // Only stays that got a leave check appear in the timeline, so only those need a name.
-    resolveStayNames(perSession.flatMap(({ stays, logs }) => {
-      const checked = new Set(logs.map(l => l.stayId));
-      return stays.filter(st => checked.has(st.id) && !st.placeId && !st.customName);
-    }));
   }
 
   const days = useMemo(() => {
@@ -111,6 +105,18 @@ export default function TimelineScreen() {
   const latest = days.size ? Math.max(...days.keys()) : todayDate;
   const selected = picked ?? (days.has(todayDate) ? todayDate : latest);
   const day = days.get(selected);
+
+  // Names are looked up live for the day on screen only (Kakao results aren't stored), and only
+  // for stays that got a leave check, since those are the ones the timeline names. Days already
+  // shown while the tab has been mounted aren't asked again.
+  useEffect(() => {
+    resolveStayNames(data
+      .filter(d => new Date(d.session.startedAt).getDate() === selected)
+      .flatMap(({ stays, logs }) => {
+        const checked = new Set(logs.map(l => l.stayId));
+        return stays.filter(st => checked.has(st.id) && !st.placeId && !st.customName);
+      }));
+  }, [data, selected, resolveStayNames]);
 
   function editStay(stayId: string) {
     const stay = data.flatMap(d => d.stays).find(st => st.id === stayId);

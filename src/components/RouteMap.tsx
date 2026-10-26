@@ -31,7 +31,10 @@ const KAKAO_JS_KEY = process.env.EXPO_PUBLIC_KAKAO_JS_KEY;
 // Kakao Maps only serves registered web domains; the WebView document is given this origin,
 // so it must be listed under 플랫폼 → Web in the Kakao Developers console. It must be https:
 // the SDK loads its core with protocol-relative URLs, and iOS ATS blocks the http variant.
-const MAP_ORIGIN = 'https://localhost';
+// Nothing is fetched from it; it only has to be an origin no one else can serve pages from, so
+// the JS key isn't accepted on someone else's site. It is our own portfolio domain, so it must
+// stay registered: if it lapsed, whoever bought it could use the key.
+const MAP_ORIGIN = 'https://www.choiyunsung.dev';
 // How long to wait for the Kakao SDK before showing the "couldn't load" state.
 const LOAD_TIMEOUT_MS = 8000;
 
@@ -212,6 +215,10 @@ function LoadedMap({ coords, height, fill }: { coords: Coord[]; height: number; 
         domStorageEnabled
         originWhitelist={['*']}
         onMessage={onMessage}
+        // The OS can kill the web content process while the app sits in the background, leaving
+        // a blank map with no error. Rebuild the page when that happens.
+        onContentProcessDidTerminate={retry}
+        onRenderProcessGone={retry}
       />
       {state === 'error' && (
         <View style={styles.failed}>

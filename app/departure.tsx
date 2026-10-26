@@ -13,14 +13,11 @@ export default function DepartureScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadItems();
+    getItems().then(all => {
+      setItems(all);
+      setChecked(new Set(all.filter(i => i.isDefault).map(i => i.id)));
+    });
   }, []);
-
-  async function loadItems() {
-    const all = await getItems();
-    setItems(all);
-    setChecked(new Set(all.filter(i => i.isDefault).map(i => i.id)));
-  }
 
   function toggle(id: string) {
     setChecked(prev => {

@@ -52,28 +52,23 @@ export default function SessionResultScreen() {
 
   useEffect(() => {
     if (!sessionId) return;
-    load();
-  }, [sessionId]);
-
-  async function load() {
-    const [stayList, logList, allItems, s, places, count] = await Promise.all([
-      getStaysForSession(sessionId!),
-      getLeaveLogsForSession(sessionId!),
+    Promise.all([
+      getStaysForSession(sessionId),
+      getLeaveLogsForSession(sessionId),
       getItems(),
-      getSession(sessionId!),
+      getSession(sessionId),
       getPlaces(),
       getReturnStreak(),
-    ]);
-    setStays(stayList);
-    const checked = new Set(logList.map(l => l.stayId));
-    resolveStayNames(stayList.filter(st => checked.has(st.id) && !st.placeId && !st.customName));
-    setLogs(logList);
-    setItems(allItems);
-    setSession(s);
-    setPlaceNames(Object.fromEntries(places.map(p => [p.id, p.name])));
-    setNames(Object.fromEntries(allItems.map(i => [i.id, i.name])));
-    setStreak(count);
-  }
+    ]).then(([stayList, logList, allItems, s, places, count]) => {
+      setStays(stayList);
+      setLogs(logList);
+      setItems(allItems);
+      setSession(s);
+      setPlaceNames(Object.fromEntries(places.map(p => [p.id, p.name])));
+      setNames(Object.fromEntries(allItems.map(i => [i.id, i.name])));
+      setStreak(count);
+    });
+  }, [sessionId]);
 
   const missingIds: string[] = missingItemIds ? JSON.parse(missingItemIds) : [];
   const missingItems = items.filter(i => missingIds.includes(i.id));
@@ -87,6 +82,14 @@ export default function SessionResultScreen() {
     : session ? `${formatTime(session.startedAt)} · 집에서 출발할 때` : '';
 
   const goHome = () => setLeaving(true);
+
+  // Names are looked up live and only for what's on screen (Kakao results aren't stored): the
+  // last checked place up front, the rest once the day's record is opened.
+  useEffect(() => {
+    const checked = new Set(logs.map(l => l.stayId));
+    const named = stays.filter(st => checked.has(st.id) && !st.placeId && !st.customName);
+    resolveStayNames(showDay ? named : named.filter(st => st.id === lastStay?.id));
+  }, [logs, stays, showDay, lastStay?.id, resolveStayNames]);
 
   const dayRecord = (
     <>

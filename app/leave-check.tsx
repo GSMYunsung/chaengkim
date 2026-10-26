@@ -57,7 +57,7 @@ export default function LeaveCheckScreen() {
     const editable = !isHomeStay(stay, places);
     setPlace({ name: own ?? '머문 장소', dwellMin, editable });
     if (!own) {
-      lookupPlaceName(stay.anchorLat, stay.anchorLng).then(name => {
+      lookupPlaceName(stay.anchorLat, stay.anchorLng).then(({ name }) => {
         if (name) setPlace({ name, dwellMin, editable });
       });
     }

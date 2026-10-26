@@ -236,7 +236,7 @@ export default function TestLabScreen() {
   async function handleClearPlaceCache() {
     const { clearPlaceNameCache } = await import('../src/db/queries');
     const n = await clearPlaceNameCache();
-    Alert.alert('장소 이름 캐시 비움', `저장된 장소 이름 ${n}개를 지웠어요. 다음에 화면을 열면 카카오에서 다시 찾아요.`);
+    Alert.alert('장소 이름 캐시 비움', `저장된 '가게 없음' 장소 ${n}개를 지웠어요. 상호명은 원래 저장하지 않고 화면마다 새로 찾아요.`);
   }
 
   async function handleExportCSV() {

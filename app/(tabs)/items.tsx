@@ -22,15 +22,15 @@ export default function ItemsScreen() {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
 
+  async function load() {
+    setItems(await getItems());
+  }
+
   useFocusEffect(
     useCallback(() => {
       load();
     }, []),
   );
-
-  async function load() {
-    setItems(await getItems());
-  }
 
   const add = () => router.push("/item-edit");
   const baseCount = items.filter((i) => i.isDefault).length;

@@ -11,7 +11,7 @@ import {
   getDwellThresholdMin,
   getPlaces,
 } from "../../src/db/queries";
-import { lookupPlaceName } from "../../src/services/placeLookup";
+import { useStayNames } from "../../src/hooks/useStayNames";
 import { RouteMapCard } from "../../src/components/RouteMapCard";
 import { BagStage } from "../../src/components/BagStage";
 import { StayNameDialog } from "../../src/components/StayNameDialog";
@@ -49,7 +49,7 @@ export default function HomeScreen() {
   const [streak, setStreak] = useState(0);
   const [todayStays, setTodayStays] = useState<Stay[]>([]);
   const [stopIds, setStopIds] = useState<Set<string>>(new Set());
-  const [stopNames, setStopNames] = useState<Record<string, string>>({});
+  const [stopNames, resolveStopNames] = useStayNames();
 
   useFocusEffect(
     useCallback(() => {
@@ -90,11 +90,8 @@ export default function HomeScreen() {
       (st) => ((st.leftAt ?? now) - st.arrivedAt) / 60000 >= threshold,
     );
     setStopIds(new Set(stops.map((st) => st.id)));
-    for (const st of stops.filter((x) => !x.customName && !x.placeId)) {
-      lookupPlaceName(st.anchorLat, st.anchorLng).then((name) => {
-        if (name) setStopNames((prev) => ({ ...prev, [st.id]: name }));
-      });
-    }
+    // The tab stays mounted, so only stops new since the last visit are looked up.
+    resolveStopNames(stops.filter((x) => !x.customName && !x.placeId));
   }
 
   const stops = todayStays.filter((st) => stopIds.has(st.id));
