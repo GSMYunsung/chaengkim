@@ -45,8 +45,17 @@ async function setAnchor(sessionId: string, lat: number, lng: number, now: numbe
 }
 
 
+// kCLErrorLocationUnknown (code 0): Core Location couldn't get a fix yet and keeps trying.
+// Apple documents it as transient and safe to ignore, so it isn't reported as an error.
+function isTransientLocationError(error: any): boolean {
+  return error?.code === 0 || /kCLErrorDomain Code=0\b/.test(String(error?.message ?? ''));
+}
+
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
-  if (error) { console.error('Location task error:', error); return; }
+  if (error) {
+    if (!isTransientLocationError(error)) console.error('Location task error:', error);
+    return;
+  }
   const locations: Location.LocationObject[] = data?.locations ?? [];
   if (!locations.length) return;
 

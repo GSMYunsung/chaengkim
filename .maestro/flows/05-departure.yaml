@@ -1,0 +1,20 @@
+appId: com.yuncastlee.chaengkim
+name: "5 출발 체크"
+---
+- waitForAnimationToEnd
+- tapOn:
+    text: "홈, tab.*"
+    retryTapIfNoChange: true
+- tapOn: "지금 출발.*"
+- assertVisible: "(?s).*골라 주세요.*"
+# 기본 물건 중 하나(충전기가 아닌 첫 기본 물건)를 빼고 출발한다.
+- tapOn: "지갑"
+- takeScreenshot: 05-departure-checked
+- tapOn: ".*챙기고 외출 시작"
+- extendedWaitUntil:
+    visible: "외출 중"
+    timeout: 10000
+- assertVisible: "(?s).*외출 중이에요.*"
+- assertVisible: "소지품 확인"
+- assertVisible: "집에 도착했어요"
+- takeScreenshot: 05-home-outing

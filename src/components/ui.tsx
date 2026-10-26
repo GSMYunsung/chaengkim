@@ -31,7 +31,12 @@ export function Screen({ children, edges = ['bottom'], header, scroll = true }: 
     <SafeAreaView style={styles.safe} edges={edges}>
       {header}
       {scroll ? (
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          // Number pads have no return key; dragging the page is how the keyboard goes away.
+          keyboardDismissMode="on-drag"
+        >
           {children}
         </ScrollView>
       ) : (

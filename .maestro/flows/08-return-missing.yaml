@@ -1,0 +1,27 @@
+appId: com.yuncastlee.chaengkim
+name: "8 귀가 (빠뜨림)"
+---
+- waitForAnimationToEnd
+- tapOn:
+    text: "홈, tab.*"
+    retryTapIfNoChange: true
+- tapOn: "집에 도착했어요"
+- assertVisible: "(?s).*모두 함께 왔나요.*"
+- tapOn: "모두 있어요"
+- tapOn: "열쇠"
+- tapOn: "확인한 물건으로 마치기"
+- assertVisible: "(?s).*아직 확인되지 않았어요.*"
+- takeScreenshot: 08-confirm-dialog
+- tapOn: "마치기"
+- extendedWaitUntil:
+    visible: "(?s).*보이지 않나요.*"
+    timeout: 10000
+- takeScreenshot: 08-result-missing
+- tapOn: "홈으로"
+- scrollUntilVisible:
+    element: "연속 챙김.*"
+    direction: DOWN
+- assertVisible: "(?s).*0번.*"
+- scrollUntilVisible:
+    element: "지금 출발.*"
+    direction: UP

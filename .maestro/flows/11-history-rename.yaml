@@ -1,0 +1,23 @@
+appId: com.yuncastlee.chaengkim
+name: "11 기록에서 이름 수정"
+---
+- waitForAnimationToEnd
+- tapOn:
+    text: "기록, tab.*"
+    retryTapIfNoChange: true
+- scrollUntilVisible:
+    element: ".*이름 고치기"
+    direction: DOWN
+- tapOn: ".*이름 고치기"
+- assertVisible: "머문 곳 이름"
+- eraseText: 30
+- inputText: "단골 카페"
+- tapOn: "저장"
+- extendedWaitUntil:
+    visible: "단골 카페"
+    timeout: 10000
+- takeScreenshot: 11-renamed
+# 이름 입력 키보드가 탭 바를 가리지 않게, 화면을 끌어 닫는다(제목을 눌러서는 닫히지 않음).
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd

@@ -1,0 +1,27 @@
+appId: com.yuncastlee.chaengkim
+name: "3 소지품 추가"
+---
+- waitForAnimationToEnd
+- tapOn:
+    text: "소지품, tab.*"
+    retryTapIfNoChange: true
+- tapOn: "추가"
+- tapOn: "예: 우산"
+- inputText: "우산"
+- tapOn: "저장"
+# 저장하면 가방에 담기는 장면이 잠깐 나온 뒤 돌아간다.
+- extendedWaitUntil:
+    visible: "(?s).*우산.*가방에 담았어요.*"
+    timeout: 5000
+    optional: true
+- takeScreenshot: 03-bag-drop
+- extendedWaitUntil:
+    visible: "(?s).*우산.*"
+    timeout: 10000
+- waitForAnimationToEnd
+- tapOn:
+    text: "홈, tab.*"
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- assertVisible: "우산"
+- takeScreenshot: 03-home-with-umbrella

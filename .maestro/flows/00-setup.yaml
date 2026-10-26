@@ -1,0 +1,21 @@
+# 준비: 앱 데이터 초기화 후 개발 빌드를 이 Mac의 Metro(localhost:8082)에 연결해 연다.
+appId: com.yuncastlee.chaengkim
+name: "0 준비"
+---
+- launchApp:
+    clearState: true
+- openLink: ${DEV_URL}
+# 첫 실행에 뜨는 알림 권한 창과 개발 빌드 메뉴를 닫는다(어느 쪽이 먼저 떠도 되게 두 번).
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          text: "허용"
+          optional: true
+      - tapOn:
+          text: "Close"
+          optional: true
+- extendedWaitUntil:
+    visible: "(?s).*잊기 쉬운 순간에.*"
+    timeout: 60000
+- takeScreenshot: 00-onboarding-start

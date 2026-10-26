@@ -1,0 +1,23 @@
+appId: com.yuncastlee.chaengkim
+name: "4 소지품 수정과 삭제"
+---
+- waitForAnimationToEnd
+- tapOn:
+    text: "소지품, tab.*"
+    retryTapIfNoChange: true
+- tapOn: "(?s).*우산.*원.*"
+- assertVisible: "소지품 수정"
+- eraseText: 10
+- tapOn: "(?s)우산"
+- eraseText: 10
+- inputText: "장우산"
+- tapOn: "저장"
+- extendedWaitUntil:
+    visible: "(?s).*장우산.*"
+    timeout: 10000
+- takeScreenshot: 04-renamed
+- tapOn: "(?s).*장우산.*원.*"
+- tapOn: "이 소지품 삭제"
+- tapOn: "삭제"
+- assertNotVisible: "(?s).*장우산.*"
+- takeScreenshot: 04-deleted

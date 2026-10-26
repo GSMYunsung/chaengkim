@@ -147,7 +147,9 @@ export default function SettingsScreen() {
             value={time}
             onChangeText={v => setTime(formatTimeInput(v))}
             onEndEditing={commitTime}
-            keyboardType="number-pad"
+            // Digits with a "완료" key: the plain number pad has no way to close it.
+            keyboardType="numbers-and-punctuation"
+            returnKeyType="done"
             maxLength={5}
             placeholder="08:30"
             accessibilityLabel="출발할 시각"

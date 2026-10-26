@@ -1,0 +1,45 @@
+appId: com.yuncastlee.chaengkim
+name: "7 자리 뜰 때 (테스트 랩)"
+---
+- waitForAnimationToEnd
+- tapOn:
+    text: "홈, tab.*"
+    retryTapIfNoChange: true
+- tapOn: "테스트 랩 열기"
+- assertVisible: ".*앵커 설정.*"
+- tapOn: ".*앵커 설정.*"
+# 앵커 설정 결과 알림은 위치 조회 시간에 따라 늦게 뜨거나 안 뜰 수 있어 있으면 닫는다.
+- waitForAnimationToEnd
+- tapOn:
+    text: "OK|확인"
+    optional: true
+# 이탈 버튼은 화면 맨 아래에 반쯤 걸려 있어, 가운데로 올린 뒤 화면이 바뀔 때까지 누른다.
+- scrollUntilVisible:
+    element: ".*이탈 시뮬레이션.*"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    text: ".*이탈 시뮬레이션.*"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "(?s).*다 챙기셨나요.*"
+    timeout: 15000
+- takeScreenshot: 07-leave-check
+- tapOn: ".*이름 고치기"
+- assertVisible: "머문 곳 이름"
+- eraseText: 30
+- inputText: "회사"
+- tapOn: "저장"
+- assertVisible: "회사"
+- takeScreenshot: 07-renamed
+- tapOn: "모두 있어요"
+- tapOn: "모두 확인했어요"
+- assertVisible: "몇 분 전에 나오셨나요?"
+- tapOn: "방금"
+- tapOn: "응답 저장하고 계속"
+# 응답을 저장하면 테스트 랩으로 돌아오므로 홈으로 돌아간다.
+- tapOn:
+    id: "BackButton"
+- extendedWaitUntil:
+    visible: "홈, tab.*"
+    timeout: 10000

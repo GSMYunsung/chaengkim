@@ -1,0 +1,18 @@
+appId: com.yuncastlee.chaengkim
+name: "6 외출 중 소지품 확인"
+---
+- tapOn: "소지품 확인"
+- assertVisible: "(?s).*다 챙기셨나요.*"
+- tapOn: "열쇠"
+- tapOn: "확인한 물건으로 완료"
+- assertVisible: "(?s).*아직 확인하지 않았어요.*"
+- takeScreenshot: 06-unchecked-dialog
+- tapOn: "계속 확인"
+- tapOn: "모두 있어요"
+- assertVisible: "모두 확인했어요"
+- tapOn: "모두 확인했어요"
+- extendedWaitUntil:
+    visible: "(?s).*확인했어요.*마음 편히.*"
+    timeout: 5000
+- takeScreenshot: 06-done
+- tapOn: "홈으로"

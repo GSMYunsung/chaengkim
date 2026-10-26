@@ -1,0 +1,24 @@
+appId: com.yuncastlee.chaengkim
+name: "9 귀가 (모두 있음)"
+---
+- tapOn: "지금 출발.*"
+- tapOn: ".*챙기고 외출 시작"
+- extendedWaitUntil:
+    visible: "집에 도착했어요"
+    timeout: 10000
+- tapOn: "집에 도착했어요"
+- tapOn: "모두 있어요"
+- tapOn: "모두 확인하고 마치기"
+- extendedWaitUntil:
+    visible: "오늘도 잘 챙겼어요."
+    timeout: 10000
+- takeScreenshot: 09-result-all
+- tapOn: "홈으로"
+- scrollUntilVisible:
+    element: "연속 챙김.*"
+    direction: DOWN
+- assertVisible: "(?s).*1번.*"
+- takeScreenshot: 09-streak-1
+- scrollUntilVisible:
+    element: "지금 출발.*"
+    direction: UP

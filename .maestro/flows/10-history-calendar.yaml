@@ -1,0 +1,43 @@
+appId: com.yuncastlee.chaengkim
+name: "10 기록 캘린더"
+---
+- tapOn: "테스트 랩 열기"
+# 샘플 버튼은 화면 아래쪽에 있어 가운데로 올린 뒤 누른다.
+- scrollUntilVisible:
+    element: ".*샘플 기록 넣기.*"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    text: ".*샘플 기록 넣기.*"
+    retryTapIfNoChange: true
+# 결과 알림은 저장과 정리가 끝난 뒤 뜬다.
+- extendedWaitUntil:
+    visible: "OK|확인"
+    timeout: 20000
+- tapOn: "OK|확인"
+- tapOn:
+    id: "BackButton"
+- waitForAnimationToEnd
+- tapOn:
+    text: "기록, tab.*"
+    retryTapIfNoChange: true
+- assertVisible: "(?s).*외출했어요.*"
+- takeScreenshot: 10-calendar
+# 어제 날짜 칸(외출 기록 있음)을 고른다.
+- tapOn: ".*외출 [0-9]+번.*"
+- takeScreenshot: 10-day-selected
+- scrollUntilVisible:
+    element: ".*지도 크게 보기"
+    direction: DOWN
+    optional: true
+- tapOn:
+    text: ".*지도 크게 보기"
+    optional: true
+- extendedWaitUntil:
+    visible: "닫기"
+    timeout: 10000
+    optional: true
+- takeScreenshot: 10-map-fullscreen
+- tapOn:
+    text: "닫기"
+    optional: true

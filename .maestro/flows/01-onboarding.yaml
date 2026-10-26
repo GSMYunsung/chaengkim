@@ -1,0 +1,30 @@
+appId: com.yuncastlee.chaengkim
+name: "1 온보딩"
+---
+- assertVisible: "(?s).*잊기 쉬운 순간에.*"
+- tapOn: "권한 허용하고 계속"
+# 위치 권한 창이 뜨면 허용한다(시뮬레이터 언어가 한국어). 항상 허용 안내 알림이 뜨면 닫는다.
+- tapOn:
+    text: "앱을 사용하는 동안 허용"
+    optional: true
+- tapOn:
+    text: "'항상 허용'으로 변경|항상 허용으로 변경"
+    optional: true
+- tapOn:
+    text: "OK|확인"
+    optional: true
+- extendedWaitUntil:
+    visible: "(?s).*돌아올 곳을.*"
+    timeout: 15000
+- takeScreenshot: 01-home-register
+- tapOn: "현재 위치를 집으로 등록"
+- extendedWaitUntil:
+    visible: "다음"
+    timeout: 20000
+- tapOn: "다음"
+- assertVisible: "늘 챙기는 물건부터"
+- takeScreenshot: 01-default-items
+- tapOn: "챙김 시작하기"
+- extendedWaitUntil:
+    visible: "(?s).*담았어요.*"
+    timeout: 15000

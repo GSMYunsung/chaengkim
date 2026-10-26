@@ -43,3 +43,6 @@ yarn-error.*
 # tool artifacts
 .playwright-mcp/
 _workspace/
+
+# Maestro test runs (screenshots, logs, report)
+maestro-report/

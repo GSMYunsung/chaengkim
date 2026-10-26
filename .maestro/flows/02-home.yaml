@@ -1,0 +1,17 @@
+appId: com.yuncastlee.chaengkim
+name: "2 홈 (외출 전)"
+---
+- waitForAnimationToEnd
+- assertVisible: "챙김"
+- assertVisible: "외출 전"
+- assertVisible: "(?s)가방에.*담았어요"
+- assertVisible: "지금 출발.*"
+- scrollUntilVisible:
+    element: "연속 챙김.*"
+    direction: DOWN
+- assertVisible: "(?s).*0번.*"
+- assertVisible: "다음 출발.*"
+- takeScreenshot: 02-home-before
+- scrollUntilVisible:
+    element: "지금 출발.*"
+    direction: UP

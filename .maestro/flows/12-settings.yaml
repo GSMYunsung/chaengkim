@@ -1,0 +1,48 @@
+appId: com.yuncastlee.chaengkim
+name: "12 설정"
+---
+# 앞 시나리오의 키보드가 내려가는 중이면 탭이 안 눌리므로 기다렸다가, 안 바뀌면 다시 누른다.
+- waitForAnimationToEnd
+# 이전 실행에서 남은 알림 창이 있으면 닫는다.
+- tapOn:
+    text: "OK"
+    optional: true
+- tapOn:
+    text: "설정, tab.*"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "출발 알림"
+    timeout: 10000
+# 출발 시각 입력칸(현재 값 HH:MM)의 오른쪽 끝을 눌러 커서를 맨 뒤에 두고 새 시각을 넣는다.
+- tapOn:
+    text: "[0-9]{2}:[0-9]{2}"
+    point: "95%,50%"
+- eraseText: 5
+- inputText: "0745"
+# 키보드의 완료 키로 닫는다(이때 시각이 저장된다).
+- pressKey: Enter
+# 요일 버튼은 누를 때마다 켜고 끄므로, 꺼져 있을 때만 눌러 몇 번을 돌려도 월·수가 켜져 있게 한다.
+- tapOn:
+    text: "월"
+    selected: false
+    optional: true
+- tapOn:
+    text: "수"
+    selected: false
+    optional: true
+- tapOn: "30분"
+- takeScreenshot: 12-settings
+- waitForAnimationToEnd
+- tapOn:
+    text: "홈, tab.*"
+    retryTapIfNoChange: true
+# 홈이 어디까지 스크롤돼 있든 같은 결과가 나오게 맨 위로 올린 뒤 타일까지 내린다.
+- scrollUntilVisible:
+    element: "지금 출발.*"
+    direction: UP
+- scrollUntilVisible:
+    element: "다음 출발.*"
+    direction: DOWN
+    visibilityPercentage: 50
+- assertVisible: "(?s).*07:45.*"
+- takeScreenshot: 12-home-schedule
