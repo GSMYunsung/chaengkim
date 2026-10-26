@@ -113,32 +113,6 @@ export function RouteMapFullScreen({ visible, onClose, title, summary, coords }:
   );
 }
 
-/** Compact "지도" button that opens the route full screen without rendering a preview map. */
-export function RouteMapButton({ coords, title, summary }: { coords: Coord[]; title: string; summary?: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Pressable
-        style={({ pressed }) => [styles.mapButton, pressed && { opacity: 0.75 }]}
-        onPress={() => setOpen(true)}
-        accessibilityRole="button"
-        accessibilityLabel={`${title} 지도 보기`}
-        hitSlop={6}
-      >
-        <Icon name="map" size={14} color={colors.blue} />
-        <Text style={styles.mapButtonText}>지도</Text>
-      </Pressable>
-      <RouteMapFullScreen
-        visible={open}
-        onClose={() => setOpen(false)}
-        title={title}
-        summary={summary}
-        coords={coords}
-      />
-    </>
-  );
-}
-
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: 16, padding: 8, overflow: 'hidden' },
   expand: {
@@ -146,11 +120,6 @@ const styles = StyleSheet.create({
     minHeight: 32, paddingHorizontal: 10, borderRadius: 16, backgroundColor: colors.card,
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
   },
-  mapButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 30, paddingHorizontal: 10,
-    borderRadius: 15, backgroundColor: colors.tint,
-  },
-  mapButtonText: { fontSize: 13, fontWeight: '600', color: colors.blue },
   expandText: { fontSize: 12, fontWeight: '600', color: colors.ink },
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 6, paddingTop: 10, paddingBottom: 4 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },

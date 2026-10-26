@@ -1,19 +1,16 @@
 import * as Location from 'expo-location';
 import { getAppStateValue, setAppStateValue } from '../db/queries';
-import { distanceM } from '../utils/geo';
 
 const SEARCH_RADIUS_M = 100;
 
 // Kakao Local category codes for shops, venues and landmarks someone would stay at.
-const KAKAO_CATEGORIES = [
-  'CE7', 'FD6', 'CS2', 'MT1', 'BK9', 'HP8', 'PM9', 'AC5', 'CT1', 'AD5', 'SW8', 'AT4', 'PO3', 'SC4',
-];
+// Category search takes one code per request, so the common stays (cafe, restaurant,
+// convenience store) are asked first and the rest only when none of those is nearby.
+// That keeps a typical lookup at 3 requests instead of 14.
+const KAKAO_COMMON = ['CE7', 'FD6', 'CS2'];
+const KAKAO_OTHERS = ['MT1', 'BK9', 'HP8', 'PM9', 'AC5', 'CT1', 'AD5', 'SW8', 'AT4', 'PO3', 'SC4'];
 const KAKAO_KEY = process.env.EXPO_PUBLIC_KAKAO_REST_KEY;
 
-const OVERPASS_URLS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-];
 
 async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Promise<Response> {
   const controller = new AbortController();
@@ -25,9 +22,18 @@ async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Pro
   }
 }
 
-async function kakaoNearest(lat: number, lng: number): Promise<string | null> {
+/** Counts Kakao requests for one lookup, for the dev log. */
+type Calls = { kakao: number };
+
+async function kakaoNearest(lat: number, lng: number, calls: Calls): Promise<string | null> {
   if (!KAKAO_KEY) return null;
-  const results = await Promise.all(KAKAO_CATEGORIES.map(async code => {
+  return (await kakaoNearestIn(KAKAO_COMMON, lat, lng, calls)) ?? kakaoNearestIn(KAKAO_OTHERS, lat, lng, calls);
+}
+
+// Closest place across the given categories, asked in parallel.
+async function kakaoNearestIn(codes: string[], lat: number, lng: number, calls: Calls): Promise<string | null> {
+  calls.kakao += codes.length;
+  const results = await Promise.all(codes.map(async code => {
     const url = `https://dapi.kakao.com/v2/local/search/category.json?category_group_code=${code}`
       + `&x=${lng}&y=${lat}&radius=${SEARCH_RADIUS_M}&sort=distance&size=1`;
     const res = await fetchWithTimeout(url, { headers: { Authorization: `KakaoAK ${KAKAO_KEY}` } }, 6000);
@@ -41,8 +47,9 @@ async function kakaoNearest(lat: number, lng: number): Promise<string | null> {
 }
 
 // Name of the building at the coordinate, when Kakao knows one (e.g. "강남파이낸스센터").
-async function kakaoBuildingName(lat: number, lng: number): Promise<string | null> {
+async function kakaoBuildingName(lat: number, lng: number, calls: Calls): Promise<string | null> {
   if (!KAKAO_KEY) return null;
+  calls.kakao += 1;
   const res = await fetchWithTimeout(
     `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lng}&y=${lat}`,
     { headers: { Authorization: `KakaoAK ${KAKAO_KEY}` } },
@@ -53,33 +60,6 @@ async function kakaoBuildingName(lat: number, lng: number): Promise<string | nul
   return json.documents?.[0]?.road_address?.building_name || null;
 }
 
-type OsmNode ={ lat: number; lon: number; tags?: Record<string, string> };
-
-async function overpassNearest(lat: number, lng: number): Promise<string | null> {
-  const query = `[out:json][timeout:6];
-node(around:${SEARCH_RADIUS_M},${lat},${lng})[name][~"^(shop|amenity|tourism|leisure)$"~"."];
-out body 40;`;
-  for (const url of OVERPASS_URLS) {
-    try {
-      const res = await fetchWithTimeout(url, {
-        method: 'POST',
-        // overpass-api.de rejects requests without an identifying User-Agent (HTTP 406).
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'chaengkim/1.0 (PoC app)' },
-        body: `data=${encodeURIComponent(query)}`,
-      }, 7000);
-      if (!res.ok) continue;
-      const json = (await res.json()) as { elements?: OsmNode[] };
-      const nearest = (json.elements ?? [])
-        .filter(n => n.tags?.name)
-        .map(n => ({ n, d: distanceM(lat, lng, n.lat, n.lon) }))
-        .sort((a, b) => a.d - b.d)[0];
-      return nearest ? (nearest.n.tags!['name:ko'] ?? nearest.n.tags!.name) : null;
-    } catch {
-      // try the next mirror
-    }
-  }
-  return null;
-}
 
 async function reverseGeocodeName(lat: number, lng: number): Promise<string | null> {
   const [r] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
@@ -89,22 +69,47 @@ async function reverseGeocodeName(lat: number, lng: number): Promise<string | nu
 
 /**
  * Name of the closest shop/landmark to a stay: Kakao Local category search, then the
- * Kakao building name (when a key is configured), then OpenStreetMap, then the OS reverse geocoder. Successful lookups are cached by
- * ~10m-rounded coordinates so revisiting the screen doesn't hit the network again.
+ * Kakao building name (when a key is configured), then the OS reverse geocoder for an address.
+ * Results, including "no shop here", are cached by ~10m-rounded coordinates so revisiting the screen
+ * doesn't hit the network again. (Public OpenStreetMap/Overpass servers aren't used: their usage
+ * policy doesn't allow an app's regular traffic.)
  */
-export async function lookupPlaceName(lat: number, lng: number): Promise<string | null> {
-  const key = `poi:${lat.toFixed(4)},${lng.toFixed(4)}`;
-  const cached = await getAppStateValue(key);
-  if (cached) return cached;
+// Lookups in flight per cache key. Screens often ask for the same spot at once (home and
+// history both open); they share one network lookup instead of each calling Kakao.
+const inFlight = new Map<string, Promise<string | null>>();
 
+export function lookupPlaceName(lat: number, lng: number): Promise<string | null> {
+  const key = `poi:${lat.toFixed(4)},${lng.toFixed(4)}`;
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const lookup = lookupUncached(key, lat, lng).finally(() => inFlight.delete(key));
+  inFlight.set(key, lookup);
+  return lookup;
+}
+
+// A cached value starting with this marks "no shop here"; the rest is the address shown instead.
+const NO_SHOP = '~';
+
+async function lookupUncached(key: string, lat: number, lng: number): Promise<string | null> {
+  const cached = await getAppStateValue(key);
+  if (cached !== null) {
+    const name = cached.startsWith(NO_SHOP) ? cached.slice(NO_SHOP.length) || null : cached;
+    if (__DEV__) console.log(`[장소 검색] ${lat.toFixed(4)},${lng.toFixed(4)} → ${name ?? '이름 없음'} (캐시)`);
+    return name;
+  }
+
+  const calls: Calls = { kakao: 0 };
   const shop =
-    (await kakaoNearest(lat, lng).catch(() => null)) ??
-    (await kakaoBuildingName(lat, lng).catch(() => null)) ??
-    (await overpassNearest(lat, lng));
+    (await kakaoNearest(lat, lng, calls).catch(() => null)) ??
+    (await kakaoBuildingName(lat, lng, calls).catch(() => null));
+  if (__DEV__) console.log(`[장소 검색] ${lat.toFixed(4)},${lng.toFixed(4)} → ${shop ?? '못 찾음'} (카카오 ${calls.kakao}회)`);
   if (shop) {
     await setAppStateValue(key, shop);
     return shop;
   }
-  // Address-style fallback isn't cached, so a real shop name can replace it once a source answers.
-  return reverseGeocodeName(lat, lng).catch(() => null);
+  // No shop nearby: remember that too, with the address shown instead, so the spot isn't searched
+  // again on every screen. Like all name cache entries it's cleared with the month's history.
+  const address = await reverseGeocodeName(lat, lng).catch(() => null);
+  await setAppStateValue(key, NO_SHOP + (address ?? ''));
+  return address;
 }

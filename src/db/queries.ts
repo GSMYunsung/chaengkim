@@ -1,4 +1,5 @@
 import { getDatabase } from './database';
+import { startOfMonth } from '../utils/format';
 import type { Item, Place, DepartureSchedule, Session, Stay, LeaveLog } from '../types';
 
 function generateId(): string {
@@ -121,47 +122,41 @@ export async function getSession(id: string): Promise<Session | null> {
   return toSession(row);
 }
 
-// Local calendar day of an outing's start, e.g. '2026-10-26'.
-const SESSION_DAY = "date(startedAt / 1000, 'unixepoch', 'localtime')";
-
-/** Number of days with outings that the history keeps; older days are pruned. */
-export const KEPT_DAYS = 10;
-
-/** Every outing on the latest `days` days that have any outing, newest first. */
-export async function getRecentSessions(days = KEPT_DAYS): Promise<Session[]> {
+/** Every outing that started at or after `since` (the history keeps the current month), newest first. */
+export async function getSessionsSince(since: number): Promise<Session[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM sessions
-     WHERE ${SESSION_DAY} IN (
-       SELECT DISTINCT ${SESSION_DAY} FROM sessions ORDER BY 1 DESC LIMIT ?
-     )
-     ORDER BY startedAt DESC`,
-    [days]
+    'SELECT * FROM sessions WHERE startedAt >= ? ORDER BY startedAt DESC',
+    [since]
   );
   return rows.map(toSession);
 }
 
 /**
- * Deletes finished outings older than the latest `days` days with outings, along with their
- * stays and leave logs. The outing in progress is never touched.
+ * Deletes finished outings that started before `before` (start of the current month by default),
+ * along with their stays, leave logs and return-notification markers. The outing in progress is
+ * never touched.
  */
-export async function pruneOldRecords(days = KEPT_DAYS): Promise<void> {
+export async function pruneOldRecords(before = startOfMonth()): Promise<void> {
   const db = await getDatabase();
-  const old = `SELECT id FROM sessions
-     WHERE endedAt IS NOT NULL
-       AND ${SESSION_DAY} < COALESCE((
-         SELECT d FROM (SELECT DISTINCT ${SESSION_DAY} AS d FROM sessions ORDER BY d DESC LIMIT ?)
-         ORDER BY d ASC LIMIT 1
-       ), '')`;
+  const old = 'SELECT id FROM sessions WHERE endedAt IS NOT NULL AND startedAt < ?';
+  let outings = 0;
+  let names = 0;
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      `DELETE FROM leave_logs WHERE stayId IN (SELECT id FROM stays WHERE sessionId IN (${old}))`, [days]);
-    await db.runAsync(`DELETE FROM stays WHERE sessionId IN (${old})`, [days]);
+      `DELETE FROM leave_logs WHERE stayId IN (SELECT id FROM stays WHERE sessionId IN (${old}))`, [before]);
+    await db.runAsync(`DELETE FROM stays WHERE sessionId IN (${old})`, [before]);
     await db.runAsync(
-      `DELETE FROM app_state WHERE key LIKE 'returnNotified_%'
-         AND substr(key, 16) IN (${old})`, [days]);
-    await db.runAsync(`DELETE FROM sessions WHERE id IN (${old})`, [days]);
+      `DELETE FROM app_state WHERE key LIKE 'returnNotified_%' AND substr(key, 16) IN (${old})`, [before]);
+    outings = (await db.runAsync(`DELETE FROM sessions WHERE id IN (${old})`, [before])).changes;
+    // Looked-up place names are keyed by visited coordinates, so they are location history too:
+    // keep only those the remaining stays still use. Key format matches placeLookup (4 decimals).
+    names = (await db.runAsync(
+      `DELETE FROM app_state WHERE key LIKE 'poi:%'
+         AND key NOT IN (SELECT printf('poi:%.4f,%.4f', anchorLat, anchorLng) FROM stays)`,
+    )).changes;
   });
+  if (__DEV__ && (outings || names)) console.log(`[기록 정리] 외출 ${outings}건, 장소 이름 캐시 ${names}개 삭제`);
 }
 
 // ── Stays ──────────────────────────────────────────────
@@ -295,6 +290,13 @@ export async function getDwellThresholdMin(): Promise<number> {
 export async function getStay(id: string): Promise<Stay | null> {
   const db = await getDatabase();
   return db.getFirstAsync<Stay>('SELECT * FROM stays WHERE id = ?', [id]);
+}
+
+/** Test-lab only: forgets looked-up place names (`poi:` cache) so the next lookups hit the network. */
+export async function clearPlaceNameCache(): Promise<number> {
+  const db = await getDatabase();
+  const res = await db.runAsync("DELETE FROM app_state WHERE key LIKE 'poi:%'");
+  return res.changes;
 }
 
 // ── Streak ─────────────────────────────────────────────

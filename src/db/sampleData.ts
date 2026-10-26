@@ -1,8 +1,9 @@
 import { getDatabase } from './database';
-import { getItems, setAppStateValue, pruneOldRecords, KEPT_DAYS } from './queries';
+import { getItems, setAppStateValue, pruneOldRecords, getSessionsSince } from './queries';
+import { startOfMonth } from '../utils/format';
 
 // Test-lab only: fills history with believable outings so the timeline, maps, streak and
-// the 10-day pruning can be checked without walking around for two weeks.
+// month-based pruning can be checked without walking around for weeks.
 
 const SPOTS = [
   { name: '회사', lat: 37.4979, lng: 127.0276 },
@@ -10,16 +11,18 @@ const SPOTS = [
   { name: '을지로 점심', lat: 37.5663, lng: 126.991 },
   { name: '잠실 헬스장', lat: 37.5133, lng: 127.1001 },
   { name: '판교 미팅', lat: 37.3947, lng: 127.1112 },
+  // No shop within 100m: exercises the cached "no shop here" path.
+  { name: '한강 둔치', lat: 37.5283, lng: 126.933 },
 ];
 
 const MIN = 60_000;
 let seq = 0;
 const id = (p: string) => `sample-${p}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
 
-/** Day offsets (days ago) for the sample outings; today has two. Older than KEPT_DAYS get pruned. */
-const DAYS_AGO = [0, 0, 1, 2, 4, 5, 7, 8, 9, 11, 13, 15];
+/** Day offsets (days ago) for the sample outings; today has two. Ones before this month get pruned. */
+const DAYS_AGO = [0, 0, 1, 2, 4, 5, 7, 8, 9, 11, 13, 15, 24, 32, 38];
 
-export async function seedSampleHistory(): Promise<{ outings: number; days: number; streak: number }> {
+export async function seedSampleHistory(): Promise<{ added: number; kept: number; days: number; streak: number }> {
   const db = await getDatabase();
   const items = await getItems();
   const itemIds = items.filter(i => i.isDefault).map(i => i.id);
@@ -80,6 +83,7 @@ export async function seedSampleHistory(): Promise<{ outings: number; days: numb
   await setAppStateValue('returnStreak', String(streak));
   await pruneOldRecords();
 
-  const days = new Set(DAYS_AGO).size;
-  return { outings: DAYS_AGO.length, days: Math.min(days, KEPT_DAYS), streak };
+  const kept = await getSessionsSince(startOfMonth());
+  const days = new Set(kept.map(k => new Date(k.startedAt).getDate())).size;
+  return { added: DAYS_AGO.length, kept: kept.length, days, streak };
 }

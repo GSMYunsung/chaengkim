@@ -229,8 +229,14 @@ export default function TestLabScreen() {
     await loadState();
     Alert.alert(
       '샘플 기록 추가',
-      `외출 ${r.outings}건(12일치)을 넣고, 최신 ${r.days}일만 남기고 정리했어요.\n연속 챙김은 ${r.streak}번으로 맞췄어요.`,
+      `샘플 외출 ${r.added}건을 넣고 지난달 기록은 정리했어요.\n이번 달 ${r.days}일, 외출 ${r.kept}건이 남았어요. 연속 챙김은 ${r.streak}번이에요.`,
     );
+  }
+
+  async function handleClearPlaceCache() {
+    const { clearPlaceNameCache } = await import('../src/db/queries');
+    const n = await clearPlaceNameCache();
+    Alert.alert('장소 이름 캐시 비움', `저장된 장소 이름 ${n}개를 지웠어요. 다음에 화면을 열면 카카오에서 다시 찾아요.`);
   }
 
   async function handleExportCSV() {
@@ -379,6 +385,7 @@ export default function TestLabScreen() {
           <ActionBtn emoji="🚶" label="이탈 시뮬레이션" onPress={handleSimulateDeparture} disabled={!activeStayId} color={COLORS.warning} />
           <ActionBtn emoji="🏠" label="귀가 시뮬레이션" onPress={handleSimulateHome} disabled={!sessionId} color={COLORS.success} />
           <ActionBtn emoji="🗂" label="샘플 기록 넣기" onPress={handleSeedSample} disabled={!!sessionId} />
+          <ActionBtn emoji="🧹" label="장소 이름 캐시 비우기" onPress={handleClearPlaceCache} />
         </View>
 
         <View style={styles.logsHeader}>
