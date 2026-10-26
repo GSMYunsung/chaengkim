@@ -45,7 +45,7 @@ export default function SessionResultScreen() {
     if (leaving) router.replace('/');
   }, [leaving]);
 
-  // Measurement data is a testing aid, shown only in test mode.
+  // Measurement data is a testing aid: always in dev builds, in production only in test mode.
   useEffect(() => {
     getAppStateValue('testMode').then(v => setTestMode(v === 'true'));
   }, []);
@@ -161,7 +161,7 @@ export default function SessionResultScreen() {
         </>
       )}
 
-      {testMode && (
+      {(__DEV__ || testMode) && (
         <>
           <View style={styles.metricsToggle}>
             <LinkButton

@@ -133,7 +133,8 @@ export default function HomeScreen() {
             </Pressable>
           }
           right={
-            testMode && (
+            // Dev builds always show the test lab; production only when test mode is on.
+            (__DEV__ || testMode) && (
               <Pressable
                 style={({ pressed }) => [
                   styles.testBtn,
