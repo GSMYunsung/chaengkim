@@ -9,7 +9,6 @@
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.yuncastlee.chaengkim",
-      "developmentClient": true,
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드에서도 위치를 추적해 자리를 뜰 때 소지품 알림을 드립니다.",
@@ -19,6 +18,9 @@
           "location",
           "fetch"
         ]
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -102,10 +104,28 @@
             ]
           }
         }
-      ]
+      ],
+      "expo-sharing",
+      "expo-sqlite",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9e52d36c-a0b4-4c2c-a6ab-0b7a3119a3e8"
+      }
+    },
+    "owner": "choi_yunsung",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9e52d36c-a0b4-4c2c-a6ab-0b7a3119a3e8",
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
     }
   }
 }
