@@ -1,0 +1,204 @@
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
+import {
+  getStaysForSession, getLeaveLogsForSession, getItems, getSession, getPlaces, getSavedItemsCountSince,
+} from '../src/db/queries';
+import { RouteMap } from '../src/components/RouteMap';
+import { TimelineList, buildSessionEntries } from '../src/components/Timeline';
+import { useStayNames } from '../src/hooks/useStayNames';
+import {
+  Screen, Intro, Group, Row, ItemIcon, PrimaryButton, SecondaryButton, LinkButton, Actions, Strip, SuccessMark, SectionHeader,
+  Text,
+} from '../src/components/ui';
+import { colors, type } from '../src/theme';
+import { itemIcon } from '../src/utils/itemIcon';
+import { formatTime, startOfMonth } from '../src/utils/format';
+import type { Stay, LeaveLog, Item, Session } from '../src/types';
+
+export default function SessionResultScreen() {
+  const router = useRouter();
+  const { sessionId, missingItemIds } = useLocalSearchParams<{
+    sessionId: string;
+    missingItemIds: string;
+  }>();
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [stays, setStays] = useState<Stay[]>([]);
+  const [logs, setLogs] = useState<LeaveLog[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [placeNames, setPlaceNames] = useState<Record<string, string>>({});
+  const [stayNames, resolveStayNames] = useStayNames();
+  const [savedCount, setSavedCount] = useState(0);
+  const [showMetrics, setShowMetrics] = useState(false);
+  const [showDay, setShowDay] = useState(false);
+  const [names, setNames] = useState<Record<string, string>>({});
+  const [leaving, setLeaving] = useState(false);
+
+  // The outing is already closed; going back would reopen a finished check. Only "홈으로" leaves.
+  usePreventRemove(!leaving, () => {});
+
+  useEffect(() => {
+    if (leaving) router.replace('/');
+  }, [leaving]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    load();
+  }, [sessionId]);
+
+  async function load() {
+    const [stayList, logList, allItems, s, places, count] = await Promise.all([
+      getStaysForSession(sessionId!),
+      getLeaveLogsForSession(sessionId!),
+      getItems(),
+      getSession(sessionId!),
+      getPlaces(),
+      getSavedItemsCountSince(startOfMonth()),
+    ]);
+    setStays(stayList);
+    const checked = new Set(logList.map(l => l.stayId));
+    resolveStayNames(stayList.filter(st => checked.has(st.id) && !st.placeId));
+    setLogs(logList);
+    setItems(allItems);
+    setSession(s);
+    setPlaceNames(Object.fromEntries(places.map(p => [p.id, p.name])));
+    setNames(Object.fromEntries(allItems.map(i => [i.id, i.name])));
+    setSavedCount(count);
+  }
+
+  const missingIds: string[] = missingItemIds ? JSON.parse(missingItemIds) : [];
+  const missingItems = items.filter(i => missingIds.includes(i.id));
+  const sessionCount = session?.itemIds.length ?? 0;
+
+  // Most recent moment the user confirmed their belongings during this outing.
+  const lastCheck = [...logs].reverse().find(l => l.action && l.action !== 'ignored');
+  const lastCheckLabel = lastCheck
+    ? `${formatTime(lastCheck.notifiedAt)} · ${placeNames[stays.find(s => s.id === lastCheck.stayId)?.placeId ?? ''] ?? stayNames[lastCheck.stayId] ?? '머문 장소'}`
+    : session ? `${formatTime(session.startedAt)} · 집에서 출발할 때` : '';
+
+  const goHome = () => setLeaving(true);
+
+  const dayRecord = (
+    <>
+      <SecondaryButton
+        label={showDay ? '당일 기록 접기' : '당일 기록 살펴보기'}
+        icon={showDay ? 'chevron-up' : 'map-pinned'}
+        onPress={() => setShowDay(v => !v)}
+      />
+      {showDay && session && (
+        <View style={styles.day}>
+          <SectionHeader first title="이번 외출 동선" />
+          {stays.length > 0 ? (
+            <View style={styles.map}>
+              <RouteMap
+                height={260}
+                coords={stays.map(s => ({ lat: s.anchorLat, lng: s.anchorLng, label: formatTime(s.arrivedAt) }))}
+              />
+            </View>
+          ) : (
+            <Text style={type.small}>기록된 위치가 없어요.</Text>
+          )}
+          <SectionHeader title="확인 기록" />
+          <TimelineList entries={buildSessionEntries(session, stays, logs, names, placeNames, stayNames)} />
+        </View>
+      )}
+    </>
+  );
+
+  return (
+    <Screen>
+      <Stack.Screen
+        options={{
+          title: missingItems.length ? '마지막 확인' : '귀가 완료',
+          headerBackVisible: false,
+          headerLeft: () => null,
+          gestureEnabled: false,
+        }}
+      />
+      {missingItems.length ? (
+        <>
+          <Intro title={`${missingItems.length}개가 보이지 않나요?`} subtitle="마지막으로 직접 확인한 기록을 살펴보세요." />
+          <Strip icon="search" tone="warn" text="현재 물건의 위치를 감지한 정보는 아니에요." />
+          {missingItems.map(item => (
+            <Group key={item.id} style={{ marginBottom: 12 }}>
+              <Row icon={itemIcon(item.name)} iconStyle="tile" title={item.name} subtitle={`${lastCheckLabel} 마지막 확인`} />
+            </Group>
+          ))}
+          <Actions>
+            {dayRecord}
+            <PrimaryButton label="홈으로" onPress={goHome} />
+          </Actions>
+        </>
+      ) : (
+        <>
+          <SuccessMark icon="house" />
+          <Intro title="오늘도 잘 챙겼어요." subtitle="외출을 마치고 위치 기록을 멈췄어요." />
+          <Group>
+            <Row icon="check-check" title={`${sessionCount}개 소지품 확인 완료`} subtitle="모든 물건이 함께 돌아왔어요" />
+          </Group>
+          <View style={styles.saved}>
+            <ItemIcon name="shield-check" small />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.savedTitle}>이번 달 지켜낸 물건</Text>
+              <Text style={[type.small, { marginTop: 3 }]}>자리 뜰 때 확인하고 함께 돌아온 물건</Text>
+            </View>
+            <Text style={styles.savedValue}>{savedCount}개</Text>
+          </View>
+          <Actions>
+            {dayRecord}
+            <PrimaryButton label="홈으로" onPress={goHome} />
+          </Actions>
+        </>
+      )}
+
+      <View style={styles.metricsToggle}>
+        <LinkButton
+          label={showMetrics ? '측정 데이터 숨기기' : '측정 데이터 보기 (테스트)'}
+          icon={showMetrics ? 'chevron-up' : 'chevron-down'}
+          onPress={() => setShowMetrics(v => !v)}
+        />
+      </View>
+      {showMetrics && <Metrics logs={logs} stays={stays} />}
+    </Screen>
+  );
+}
+
+function Metrics({ logs, stays }: { logs: LeaveLog[]; stays: Stay[] }) {
+  const responded = logs.filter(l => l.action && l.action !== 'ignored').length;
+  const avgDwell = logs.length ? (logs.reduce((s, l) => s + l.dwellMin, 0) / logs.length).toFixed(0) : '—';
+  const stats: [string, string][] = [
+    ['자리 뜰 때 알림', `${logs.length}회`],
+    ['응답', `${responded}회`],
+    ['신호 A', `${logs.filter(l => l.notifiedBy === 'A').length}회`],
+    ['신호 B', `${logs.filter(l => l.notifiedBy === 'B').length}회`],
+    ['평균 체류', `${avgDwell}분`],
+    ['머문 장소', `${stays.length}곳`],
+  ];
+
+  return (
+    <View style={styles.statGrid}>
+      {stats.map(([label, value]) => (
+        <View key={label} style={styles.stat}>
+          <Text style={styles.statValue}>{value}</Text>
+          <Text style={type.small}>{label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  saved: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, paddingTop: 18,
+    borderTopWidth: 1, borderTopColor: colors.line,
+  },
+  savedTitle: { fontSize: 14, fontWeight: '600', color: colors.ink },
+  savedValue: { fontSize: 24, fontWeight: '700', letterSpacing: -0.7, color: colors.blue, fontVariant: ['tabular-nums'] },
+  metricsToggle: { alignItems: 'center', marginTop: 28, marginBottom: 8 },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: colors.surface, borderRadius: 16, padding: 8 },
+  stat: { width: '33.33%', alignItems: 'center', paddingVertical: 12, gap: 2 },
+  statValue: { fontSize: 18, fontWeight: '700', color: colors.ink, fontVariant: ['tabular-nums'] },
+  map: { backgroundColor: colors.surface, borderRadius: 16, padding: 8, overflow: 'hidden' },
+  day: { marginTop: 8, marginBottom: 8 },
+});
