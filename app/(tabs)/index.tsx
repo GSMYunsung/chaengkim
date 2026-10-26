@@ -6,7 +6,7 @@ import {
   getAppStateValue,
   getItems,
   getSchedules,
-  getSavedItemsCountSince,
+  getReturnStreak,
   getStaysSince,
   getDwellThresholdMin,
   getPlaces,
@@ -34,7 +34,6 @@ import {
   WEEKDAYS,
   formatTime,
   startOfDay,
-  startOfMonth,
 } from "../../src/utils/format";
 import type { DepartureSchedule, Item, Place, Session, Stay } from "../../src/types";
 
@@ -47,7 +46,7 @@ export default function HomeScreen() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [editing, setEditing] = useState<Stay | null>(null);
   const [schedules, setSchedules] = useState<DepartureSchedule[]>([]);
-  const [savedCount, setSavedCount] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [todayStays, setTodayStays] = useState<Stay[]>([]);
   const [stopIds, setStopIds] = useState<Set<string>>(new Set());
   const [stopNames, setStopNames] = useState<Record<string, string>>({});
@@ -69,7 +68,7 @@ export default function HomeScreen() {
         getActiveSession(),
         getItems(),
         getSchedules(),
-        getSavedItemsCountSince(startOfMonth()),
+        getReturnStreak(),
         getStaysSince(startOfDay()),
         getDwellThresholdMin(),
         getAppStateValue("testMode"),
@@ -81,7 +80,7 @@ export default function HomeScreen() {
     setItems(all);
     setLoaded(true);
     setSchedules(sched.filter((x) => x.enabled));
-    setSavedCount(count);
+    setStreak(count);
     setTodayStays(stays);
 
     setTestMode(testMode === "true");
@@ -213,10 +212,10 @@ export default function HomeScreen() {
           />
         )}
         <SummaryTile
-          icon="shield-check"
-          label="이번 달 지켜낸 물건"
-          value={`${savedCount}개`}
-          sub="집까지 함께 온 물건"
+          icon="flame"
+          label="연속 챙김"
+          value={`${streak}번`}
+          sub={streak ? "빠짐없이 귀가" : "모두 챙겨 오면 시작돼요"}
           accent
         />
       </View>

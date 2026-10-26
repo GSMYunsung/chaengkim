@@ -223,6 +223,16 @@ export default function TestLabScreen() {
     ]);
   }
 
+  async function handleSeedSample() {
+    const { seedSampleHistory } = await import('../src/db/sampleData');
+    const r = await seedSampleHistory();
+    await loadState();
+    Alert.alert(
+      '샘플 기록 추가',
+      `외출 ${r.outings}건(12일치)을 넣고, 최신 ${r.days}일만 남기고 정리했어요.\n연속 챙김은 ${r.streak}번으로 맞췄어요.`,
+    );
+  }
+
   async function handleExportCSV() {
     if (logs.length === 0) {
       Alert.alert('내보낼 데이터 없음', '아직 측정 로그가 없어요.');
@@ -368,6 +378,7 @@ export default function TestLabScreen() {
           <ActionBtn emoji="📍" label="앵커 설정" onPress={handleSetAnchor} disabled={!sessionId || !coord} />
           <ActionBtn emoji="🚶" label="이탈 시뮬레이션" onPress={handleSimulateDeparture} disabled={!activeStayId} color={COLORS.warning} />
           <ActionBtn emoji="🏠" label="귀가 시뮬레이션" onPress={handleSimulateHome} disabled={!sessionId} color={COLORS.success} />
+          <ActionBtn emoji="🗂" label="샘플 기록 넣기" onPress={handleSeedSample} disabled={!!sessionId} />
         </View>
 
         <View style={styles.logsHeader}>

@@ -121,13 +121,47 @@ export async function getSession(id: string): Promise<Session | null> {
   return toSession(row);
 }
 
-export async function getRecentSessions(limit = 10): Promise<Session[]> {
+// Local calendar day of an outing's start, e.g. '2026-10-26'.
+const SESSION_DAY = "date(startedAt / 1000, 'unixepoch', 'localtime')";
+
+/** Number of days with outings that the history keeps; older days are pruned. */
+export const KEPT_DAYS = 10;
+
+/** Every outing on the latest `days` days that have any outing, newest first. */
+export async function getRecentSessions(days = KEPT_DAYS): Promise<Session[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    'SELECT * FROM sessions ORDER BY startedAt DESC LIMIT ?',
-    [limit]
+    `SELECT * FROM sessions
+     WHERE ${SESSION_DAY} IN (
+       SELECT DISTINCT ${SESSION_DAY} FROM sessions ORDER BY 1 DESC LIMIT ?
+     )
+     ORDER BY startedAt DESC`,
+    [days]
   );
   return rows.map(toSession);
+}
+
+/**
+ * Deletes finished outings older than the latest `days` days with outings, along with their
+ * stays and leave logs. The outing in progress is never touched.
+ */
+export async function pruneOldRecords(days = KEPT_DAYS): Promise<void> {
+  const db = await getDatabase();
+  const old = `SELECT id FROM sessions
+     WHERE endedAt IS NOT NULL
+       AND ${SESSION_DAY} < COALESCE((
+         SELECT d FROM (SELECT DISTINCT ${SESSION_DAY} AS d FROM sessions ORDER BY d DESC LIMIT ?)
+         ORDER BY d ASC LIMIT 1
+       ), '')`;
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `DELETE FROM leave_logs WHERE stayId IN (SELECT id FROM stays WHERE sessionId IN (${old}))`, [days]);
+    await db.runAsync(`DELETE FROM stays WHERE sessionId IN (${old})`, [days]);
+    await db.runAsync(
+      `DELETE FROM app_state WHERE key LIKE 'returnNotified_%'
+         AND substr(key, 16) IN (${old})`, [days]);
+    await db.runAsync(`DELETE FROM sessions WHERE id IN (${old})`, [days]);
+  });
 }
 
 // ── Stays ──────────────────────────────────────────────
@@ -263,27 +297,18 @@ export async function getStay(id: string): Promise<Stay | null> {
   return db.getFirstAsync<Stay>('SELECT * FROM stays WHERE id = ?', [id]);
 }
 
-// Items kept this month: what came home with the user, as confirmed at each return check.
-// Outings from before that was stored fall back to the old rule (all items of an outing
-// that had a leave check), so existing totals don't drop.
-export async function getSavedItemsCountSince(since: number): Promise<number> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<{ itemIds: string; returnedItemIds: string | null; checked: number }>(
-    `SELECT s.itemIds, s.returnedItemIds,
-       EXISTS (
-         SELECT 1 FROM stays st
-         JOIN leave_logs ll ON ll.stayId = st.id
-         WHERE st.sessionId = s.id
-       ) AS checked
-     FROM sessions s
-     WHERE s.endedAt IS NOT NULL
-       AND s.startedAt >= ?`,
-    [since]
-  );
-  return rows.reduce((sum, r) => {
-    if (r.returnedItemIds !== null) return sum + JSON.parse(r.returnedItemIds).length;
-    return r.checked ? sum + JSON.parse(r.itemIds).length : sum;
-  }, 0);
+// ── Streak ─────────────────────────────────────────────
+// Outings in a row that ended with every item home. Kept as a counter so pruning history
+// never changes it.
+export async function getReturnStreak(): Promise<number> {
+  return Number(await getAppStateValue('returnStreak')) || 0;
+}
+
+/** Bumps the streak when everything came home, otherwise resets it. Returns the new value. */
+export async function recordReturnStreak(allHome: boolean): Promise<number> {
+  const next = allHome ? (await getReturnStreak()) + 1 : 0;
+  await setAppStateValue('returnStreak', String(next));
+  return next;
 }
 
 export async function getStaysSince(since: number): Promise<Stay[]> {

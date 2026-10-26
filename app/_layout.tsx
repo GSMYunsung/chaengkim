@@ -4,7 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { setupNotifications, LEAVE_ACTION_ALL_CHECKED } from '../src/services/notificationService';
-import { getLeaveLogByStayId, updateLeaveLogResponse } from '../src/db/queries';
+import { getLeaveLogByStayId, updateLeaveLogResponse, pruneOldRecords } from '../src/db/queries';
 import { colors, font } from '../src/theme';
 
 Notifications.setNotificationHandler({
@@ -21,6 +21,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     setupNotifications();
+    pruneOldRecords().catch(() => {});
   }, []);
 
   useEffect(() => {

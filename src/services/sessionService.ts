@@ -1,4 +1,4 @@
-import { createSession, endSession, getActiveSession } from '../db/queries';
+import { createSession, endSession, getActiveSession, pruneOldRecords } from '../db/queries';
 import { startTracking, stopTracking } from './locationService';
 import type { Session } from '../types';
 
@@ -16,4 +16,6 @@ export async function startOutingSession(
 export async function endOutingSession(sessionId: string): Promise<void> {
   await endSession(sessionId);
   await stopTracking();
+  // History keeps the latest days only; an outing ending is a natural moment to trim it.
+  await pruneOldRecords().catch(() => {});
 }

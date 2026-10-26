@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import {
-  getStaysForSession, getLeaveLogsForSession, getItems, getSession, getPlaces, getSavedItemsCountSince,
+  getStaysForSession, getLeaveLogsForSession, getItems, getSession, getPlaces, getReturnStreak,
   getAppStateValue,
 } from '../src/db/queries';
 import { RouteMapCard } from '../src/components/RouteMapCard';
@@ -15,7 +15,7 @@ import {
 } from '../src/components/ui';
 import { colors, type } from '../src/theme';
 import { itemIcon } from '../src/utils/itemIcon';
-import { formatTime, startOfMonth } from '../src/utils/format';
+import { formatTime } from '../src/utils/format';
 import type { Stay, LeaveLog, Item, Session } from '../src/types';
 
 export default function SessionResultScreen() {
@@ -31,7 +31,7 @@ export default function SessionResultScreen() {
   const [items, setItems] = useState<Item[]>([]);
   const [placeNames, setPlaceNames] = useState<Record<string, string>>({});
   const [stayNames, resolveStayNames] = useStayNames();
-  const [savedCount, setSavedCount] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [showMetrics, setShowMetrics] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const [showDay, setShowDay] = useState(false);
@@ -62,7 +62,7 @@ export default function SessionResultScreen() {
       getItems(),
       getSession(sessionId!),
       getPlaces(),
-      getSavedItemsCountSince(startOfMonth()),
+      getReturnStreak(),
     ]);
     setStays(stayList);
     const checked = new Set(logList.map(l => l.stayId));
@@ -72,7 +72,7 @@ export default function SessionResultScreen() {
     setSession(s);
     setPlaceNames(Object.fromEntries(places.map(p => [p.id, p.name])));
     setNames(Object.fromEntries(allItems.map(i => [i.id, i.name])));
-    setSavedCount(count);
+    setStreak(count);
   }
 
   const missingIds: string[] = missingItemIds ? JSON.parse(missingItemIds) : [];
@@ -147,12 +147,12 @@ export default function SessionResultScreen() {
             <Row icon="check-check" title={`${sessionCount}개 소지품 확인 완료`} subtitle="모든 물건이 함께 돌아왔어요" />
           </Group>
           <View style={styles.saved}>
-            <ItemIcon name="shield-check" small />
+            <ItemIcon name="flame" small />
             <View style={{ flex: 1 }}>
-              <Text style={styles.savedTitle}>이번 달 지켜낸 물건</Text>
-              <Text style={[type.small, { marginTop: 3 }]}>집까지 함께 돌아온 물건</Text>
+              <Text style={styles.savedTitle}>연속 챙김</Text>
+              <Text style={[type.small, { marginTop: 3 }]}>빠짐없이 귀가한 외출</Text>
             </View>
-            <Text style={styles.savedValue}>{savedCount}개</Text>
+            <Text style={styles.savedValue}>{streak}번</Text>
           </View>
           <Actions>
             {dayRecord}
