@@ -137,6 +137,16 @@ export async function updateStayLeft(id: string, placeId?: string): Promise<void
   );
 }
 
+export async function setStayCustomName(id: string, name: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE stays SET customName = ? WHERE id = ?', [name, id]);
+}
+
+export async function setStayPlace(id: string, placeId: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE stays SET placeId = ? WHERE id = ?', [placeId, id]);
+}
+
 export async function getActiveStay(sessionId: string): Promise<Stay | null> {
   const db = await getDatabase();
   return db.getFirstAsync<Stay>(

@@ -39,7 +39,7 @@ export default function DepartureScreen() {
 
   return (
     <Screen>
-      <Intro title={<>오늘 함께할 물건을{'\n'}<Em>골라 주세요.</Em></>} subtitle="오늘 가져가는 물건만 골라 주세요." />
+      <Intro mascot="packing" title={<>오늘 함께할 물건을{'\n'}<Em>골라 주세요.</Em></>} subtitle="오늘 가져가는 물건만 골라 주세요." />
       <SectionHeader
         first
         title="내 소지품"

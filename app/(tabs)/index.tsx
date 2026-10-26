@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet, Pressable, Image } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   getActiveSession,
@@ -9,9 +9,13 @@ import {
   getSavedItemsCountSince,
   getStaysSince,
   getDwellThresholdMin,
+  getPlaces,
 } from "../../src/db/queries";
 import { lookupPlaceName } from "../../src/services/placeLookup";
-import { RouteMap, PIN_COLORS } from "../../src/components/RouteMap";
+import { RouteMapCard } from "../../src/components/RouteMapCard";
+import { BagStage } from "../../src/components/BagStage";
+import { StayNameDialog } from "../../src/components/StayNameDialog";
+import { isHomeStay, stayName } from "../../src/services/stayNameService";
 import {
   Screen,
   TabHeader,
@@ -19,31 +23,29 @@ import {
   Group,
   Row,
   Icon,
-  ItemIcon,
-  Em,
-  Strip,
   PrimaryButton,
   SecondaryButton,
   LinkButton,
-  Actions,
   Text,
-  Intro,
+  type IconName,
 } from "../../src/components/ui";
 import { colors, type } from "../../src/theme";
-import { itemIcon } from "../../src/utils/itemIcon";
 import {
   WEEKDAYS,
-  formatDateLabel,
   formatTime,
   startOfDay,
   startOfMonth,
 } from "../../src/utils/format";
-import type { DepartureSchedule, Item, Session, Stay } from "../../src/types";
+import type { DepartureSchedule, Item, Place, Session, Stay } from "../../src/types";
 
 export default function HomeScreen() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [items, setItems] = useState<Item[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [editing, setEditing] = useState<Stay | null>(null);
   const [schedules, setSchedules] = useState<DepartureSchedule[]>([]);
   const [savedCount, setSavedCount] = useState(0);
   const [todayStays, setTodayStays] = useState<Stay[]>([]);
@@ -62,7 +64,7 @@ export default function HomeScreen() {
       router.replace("/onboarding");
       return;
     }
-    const [s, all, sched, count, stays, dwellMin, testMode] = await Promise.all(
+    const [s, all, sched, count, stays, dwellMin, testMode, placeList] = await Promise.all(
       [
         getActiveSession(),
         getItems(),
@@ -71,21 +73,25 @@ export default function HomeScreen() {
         getStaysSince(startOfDay()),
         getDwellThresholdMin(),
         getAppStateValue("testMode"),
+        getPlaces(),
       ],
     );
+    setPlaces(placeList);
     setSession(s);
     setItems(all);
+    setLoaded(true);
     setSchedules(sched.filter((x) => x.enabled));
     setSavedCount(count);
     setTodayStays(stays);
 
+    setTestMode(testMode === "true");
     const threshold = testMode === "true" ? 1 : dwellMin;
     const now = Date.now();
     const stops = stays.filter(
       (st) => ((st.leftAt ?? now) - st.arrivedAt) / 60000 >= threshold,
     );
     setStopIds(new Set(stops.map((st) => st.id)));
-    for (const st of stops) {
+    for (const st of stops.filter((x) => !x.customName && !x.placeId)) {
       lookupPlaceName(st.anchorLat, st.anchorLng).then((name) => {
         if (name) setStopNames((prev) => ({ ...prev, [st.id]: name }));
       });
@@ -93,6 +99,8 @@ export default function HomeScreen() {
   }
 
   const stops = todayStays.filter((st) => stopIds.has(st.id));
+  const placeNames = Object.fromEntries(places.map((p) => [p.id, p.name]));
+  const nameOf = (st: Stay) => stayName(st, placeNames, stopNames);
 
   const active = !!session;
   const baseItems = items.filter((i) => i.isDefault);
@@ -100,17 +108,6 @@ export default function HomeScreen() {
     ? items.filter((i) => session.itemIds.includes(i.id))
     : [];
   const shown = active ? sessionItems : baseItems;
-
-  const today = new Date().getDay();
-  const nowHM = formatTime(Date.now());
-  const todaysDeparture = schedules.find(
-    (x) => x.weekday === today && x.time >= nowHM,
-  );
-  const meta = active
-    ? `${formatDateLabel(Date.now())} · ${formatTime(session!.startedAt)} 출발`
-    : todaysDeparture
-      ? `${formatDateLabel(Date.now())} · ${todaysDeparture.time} 출발 예정`
-      : formatDateLabel(Date.now());
 
   const scheduleTime = schedules[0]?.time;
   const scheduleDays = [...new Set(schedules.map((x) => x.weekday))].sort();
@@ -121,17 +118,23 @@ export default function HomeScreen() {
       header={
         <TabHeader
           title={
-            <View style={styles.brand}>
-              <View style={styles.brandmark}>
-                <Icon name="check" size={18} color={colors.onAction} />
-              </View>
-              <Text style={styles.wordmark} accessibilityRole="header">
-                챙김
-              </Text>
-            </View>
+            // Long-press the logo to reach the test lab even when test mode (and its button) is off.
+            <Pressable
+              onLongPress={() => router.push("/test-lab")}
+              delayLongPress={800}
+              accessibilityRole="header"
+              accessibilityLabel="챙김"
+              accessibilityHint="길게 누르면 테스트 랩이 열려요"
+            >
+              <Image
+                source={require("../../assets/brand/wordmark.png")}
+                style={styles.wordmark}
+                resizeMode="contain"
+              />
+            </Pressable>
           }
           right={
-            <>
+            testMode && (
               <Pressable
                 style={({ pressed }) => [
                   styles.testBtn,
@@ -145,86 +148,20 @@ export default function HomeScreen() {
                 <Icon name="flask-conical" size={14} color={colors.warn} />
                 <Text style={styles.testText}>테스트</Text>
               </Pressable>
-              <View style={styles.tag}>
-                <View style={styles.tagDot} />
-                <Text style={styles.tagText}>
-                  {active ? "외출 중" : "외출 전"}
-                </Text>
-              </View>
-            </>
+            )
           }
         />
       }
     >
-      <Intro
-        eyebrow={meta}
-        title={
-          active ? (
-            <>
-              오늘도 <Em>빠짐없이,</Em>
-              {"\n"}가볍게 다녀와요.
-            </>
-          ) : (
-            <>
-              소중한 하루,{"\n"}
-              <Em>빠짐없이</Em> 챙겨요.
-            </>
-          )
-        }
-        subtitle={
-          active
-            ? "챙긴 순간을 기록하고 있어요."
-            : "나가기 전, 내 소지품을 한 번만 확인해요."
-        }
-      />
-
-      {active && (
-        <Strip icon="map-pin" text="외출 중 위치 기록 · 물건은 직접 확인해요" />
-      )}
-
-      <View style={styles.ready} accessibilityLabel="오늘의 소지품과 출발">
-        <View style={styles.readyHeader}>
-          <Text style={styles.readyTitle}>
-            {active ? "오늘 함께하는 물건" : "오늘 챙길 물건"}
-            <Text style={{ color: colors.blue }}> {shown.length}</Text>
-          </Text>
-          <LinkButton
-            label="편집"
-            icon="chevron-right"
-            onPress={() => router.push("/items")}
-          />
-        </View>
-        {shown.length ? (
-          <View style={styles.inventory}>
-            {shown.map((item) => (
-              <View key={item.id} style={styles.invItem}>
-                <View style={styles.invIcon}>
-                  <Icon
-                    name={itemIcon(item.name)}
-                    size={23}
-                    color={colors.blue}
-                  />
-                </View>
-                <Text style={styles.invName} numberOfLines={2}>
-                  {item.name}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <Pressable
-            style={({ pressed }) => [
-              styles.addItem,
-              pressed && { opacity: 0.75 },
-            ]}
-            onPress={() => router.push("/item-edit")}
-            accessibilityRole="button"
-          >
-            <Icon name="plus" size={20} color={colors.blue} />
-            <Text style={styles.addItemText}>소지품 추가하기</Text>
-          </Pressable>
-        )}
-        <Actions>
+      <BagStage
+        label={active ? "오늘 함께하는 물건" : "오늘 챙길 물건"}
+        items={shown}
+        ready={loaded}
+        onAdd={() => router.push("/item-edit")}
+        canAdd={!active}
+        walking={active}
+      >
+        <View style={styles.stageActions}>
           {active ? (
             <>
               <PrimaryButton
@@ -244,56 +181,44 @@ export default function HomeScreen() {
               onPress={() => router.push("/departure")}
             />
           )}
-        </Actions>
-      </View>
-
-      {!active && (
-        <>
-          <SectionHeader title="다음 출발 알림" />
-          <Pressable
-            style={({ pressed }) => [
-              styles.reminder,
-              pressed && { opacity: 0.75 },
-            ]}
-            onPress={() => router.push("/settings")}
-            accessibilityRole="button"
-            accessibilityLabel="출발 알림 설정"
-          >
-            <View style={styles.reminderIcon}>
-              <Icon name="bell" size={20} color={colors.sub} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.reminderTitle}>
-                {scheduleTime
-                  ? "잊지 않게 알려드릴게요"
-                  : "출발 알림이 꺼져 있어요"}
-              </Text>
-              <Text style={type.small}>
-                {scheduleTime
-                  ? scheduleDays.map((d) => WEEKDAYS[d]).join(" · ")
-                  : "눌러서 알림 설정하기"}
-              </Text>
-            </View>
-            {!!scheduleTime && (
-              <Text style={styles.reminderTime}>{scheduleTime}</Text>
-            )}
-            <Icon name="chevron-right" size={16} color={colors.sub} />
-          </Pressable>
-        </>
-      )}
-
-      <View style={styles.saved}>
-        <ItemIcon name="shield-check" small />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.savedTitle}>이번 달 지켜낸 물건</Text>
-          <Text style={[type.small, { marginTop: 3 }]}>
-            자리 뜰 때 확인하고 함께 돌아온 물건
-          </Text>
+          <View style={{ alignItems: "center" }}>
+            <LinkButton
+              label="소지품 편집"
+              icon="chevron-right"
+              onPress={() => router.push("/items")}
+            />
+          </View>
         </View>
-        <Text style={styles.savedValue}>
-          {savedCount}
-          <Text style={styles.savedUnit}>개</Text>
-        </Text>
+      </BagStage>
+
+      <View style={styles.tiles}>
+        {active ? (
+          <SummaryTile
+            icon="map-pin"
+            label="외출 시작"
+            value={formatTime(session!.startedAt)}
+            sub="위치 기록 중"
+          />
+        ) : (
+          <SummaryTile
+            icon="bell"
+            label="다음 출발"
+            value={scheduleTime ?? "꺼짐"}
+            sub={
+              scheduleTime
+                ? scheduleDays.map((d) => WEEKDAYS[d]).join("")
+                : "눌러서 알림 설정"
+            }
+            onPress={() => router.push("/settings")}
+          />
+        )}
+        <SummaryTile
+          icon="shield-check"
+          label="이번 달 지켜낸 물건"
+          value={`${savedCount}개`}
+          sub="함께 돌아온 물건"
+          accent
+        />
       </View>
 
       <SectionHeader
@@ -306,45 +231,43 @@ export default function HomeScreen() {
       />
       {todayStays.length > 0 ? (
         <>
-          <View style={styles.map}>
-            <RouteMap
-              height={240}
-              coords={todayStays.map((st) => ({
-                lat: st.anchorLat,
-                lng: st.anchorLng,
-                label: formatTime(st.arrivedAt),
-                stop: stopIds.has(st.id),
-                name: stopNames[st.id],
-              }))}
-            />
-            <View style={styles.legend}>
-              {(
-                [
-                  ["출발", PIN_COLORS.start],
-                  ["머문 곳", PIN_COLORS.stop],
-                  ["지나간 곳", PIN_COLORS.path],
-                  ["마지막 위치", PIN_COLORS.end],
-                ] as const
-              ).map(([label, color]) => (
-                <View key={label} style={styles.legendItem}>
-                  <View
-                    style={[styles.legendDot, { backgroundColor: color }]}
-                  />
-                  <Text style={type.small}>{label}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+          <RouteMapCard
+            title="오늘의 동선"
+            summary={stops.length > 0 ? `${stops.length}곳 머묾` : undefined}
+            coords={todayStays.map((st) => ({
+              lat: st.anchorLat,
+              lng: st.anchorLng,
+              label: formatTime(st.arrivedAt),
+              stop: stopIds.has(st.id),
+              name: nameOf(st),
+            }))}
+          />
           {stops.length > 0 && (
             <Group style={{ marginTop: 12 }}>
               {stops.map((st) => (
                 <Row
                   key={st.id}
                   icon="map-pin"
-                  title={stopNames[st.id] ?? "근처 상가 찾는 중…"}
+                  title={nameOf(st) ?? "근처 상가 찾는 중…"}
                   subtitle={`${formatTime(st.arrivedAt)} · ${Math.round(
                     ((st.leftAt ?? Date.now()) - st.arrivedAt) / 60000,
                   )}분 머묾${st.leftAt ? "" : " · 지금 여기"}`}
+                  right={
+                    isHomeStay(st, places) ? undefined : (
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.editName,
+                          pressed && { opacity: 0.6 },
+                        ]}
+                        onPress={() => setEditing(st)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${nameOf(st) ?? "머문 곳"} 이름 고치기`}
+                      >
+                        <Icon name="pencil" size={15} color={colors.sub} />
+                      </Pressable>
+                    )
+                  }
                 />
               ))}
             </Group>
@@ -359,103 +282,57 @@ export default function HomeScreen() {
           </Text>
         </View>
       )}
+      <StayNameDialog
+        stay={editing}
+        currentName={editing ? nameOf(editing) : undefined}
+        onClose={() => setEditing(null)}
+        onSaved={() => loadData()}
+      />
     </Screen>
   );
 }
 
+function SummaryTile({ icon, label, value, sub, accent, onPress }: {
+  icon: IconName;
+  label: string;
+  value: string;
+  sub: string;
+  accent?: boolean;
+  onPress?: () => void;
+}) {
+  const body = (
+    <>
+      <View style={styles.tileHead}>
+        <Icon name={icon} size={16} color={colors.blue} />
+        <Text style={styles.tileLabel} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      <Text style={[styles.tileValue, accent && { color: colors.blue }]}>
+        {value}
+      </Text>
+      <Text style={type.small} numberOfLines={1}>
+        {sub}
+      </Text>
+    </>
+  );
+  if (!onPress) return <View style={styles.tile}>{body}</View>;
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.tile, pressed && { opacity: 0.75 }]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label} ${value}`}
+    >
+      {body}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  brand: { flexDirection: "row", alignItems: "center", gap: 8 },
-  brandmark: {
-    width: 27,
-    height: 27,
-    borderRadius: 9,
-    backgroundColor: colors.blue,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  wordmark: {
-    fontSize: 23,
-    fontWeight: "800",
-    letterSpacing: -0.9,
-    color: colors.ink,
-  },
-  tag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: colors.tint,
-    borderRadius: 30,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  tagDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.blue,
-  },
-  tagText: { fontSize: 12, fontWeight: "600", color: colors.blue },
-  ready: { backgroundColor: colors.tint, borderRadius: 20, padding: 16 },
-  readyHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 32,
-    marginBottom: 8,
-  },
-  readyTitle: { fontSize: 15, fontWeight: "600", color: colors.ink },
-  inventory: { flexDirection: "row", flexWrap: "wrap", rowGap: 7 },
-  invItem: { width: "25%", alignItems: "center", gap: 7, paddingVertical: 6 },
-  invIcon: {
-    width: 47,
-    height: 47,
-    borderRadius: 16,
-    backgroundColor: colors.card,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  invName: {
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: "500",
-    color: colors.ink,
-    textAlign: "center",
-  },
-  addItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    minHeight: 60,
-    borderRadius: 14,
-    backgroundColor: colors.card,
-  },
-  addItemText: { fontSize: 15, fontWeight: "600", color: colors.blue },
-  reminder: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: colors.surface,
-    borderRadius: 15,
-    paddingVertical: 17,
-    paddingHorizontal: 15,
-  },
-  reminderIcon: {
-    width: 37,
-    height: 37,
-    borderRadius: 12,
-    backgroundColor: colors.card,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  reminderTitle: { fontSize: 13, fontWeight: "500", color: colors.ink },
-  reminderTime: {
-    fontSize: 21,
-    fontWeight: "700",
-    letterSpacing: -0.4,
-    color: colors.ink,
-    fontVariant: ["tabular-nums"],
-  },
+  // Wordmark artwork is 868×150.
+  wordmark: { height: 24, width: (24 * 868) / 150 },
+  stageActions: { alignSelf: "stretch", gap: 10, marginTop: 20, alignItems: "stretch" },
   testBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -467,41 +344,35 @@ const styles = StyleSheet.create({
     borderColor: "#EBD3A8",
     backgroundColor: colors.wash,
   },
-  testText: { fontSize: 12, fontWeight: "600", color: colors.warn },
-  saved: {
-    flexDirection: "row",
+  editName: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
-    gap: 12,
-    marginTop: 18,
-    paddingTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
+    justifyContent: "center",
+    backgroundColor: colors.card,
   },
-  savedTitle: { fontSize: 14, fontWeight: "600", color: colors.ink },
-  savedValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    letterSpacing: -0.7,
-    color: colors.blue,
-    fontVariant: ["tabular-nums"],
-  },
-  savedUnit: { fontSize: 14, fontWeight: "500" },
-  map: {
+  testText: { fontSize: 12, fontWeight: "600", color: colors.warn },
+  tiles: { flexDirection: "row", gap: 10 },
+  tile: {
+    flex: 1,
+    gap: 4,
     backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: 8,
-    overflow: "hidden",
+    paddingVertical: 15,
+    paddingHorizontal: 15,
   },
-  legend: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    paddingHorizontal: 6,
-    paddingTop: 10,
-    paddingBottom: 4,
+  tileHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tileLabel: { flexShrink: 1, fontSize: 13, fontWeight: "500", color: colors.sub },
+  tileValue: {
+    fontSize: 24,
+    lineHeight: 31,
+    fontWeight: "700",
+    letterSpacing: -0.6,
+    color: colors.ink,
+    fontVariant: ["tabular-nums"],
+    marginTop: 4,
   },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
-  legendDot: { width: 9, height: 9, borderRadius: 5 },
   mapEmpty: {
     alignItems: "center",
     gap: 8,

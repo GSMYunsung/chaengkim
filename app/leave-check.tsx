@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   getActiveSession, getActiveStay, getItems, getLeaveLogByStayId, getPlaces, getStay, updateLeaveLogResponse,
 } from '../src/db/queries';
 import { lookupPlaceName } from '../src/services/placeLookup';
+import { isHomeStay } from '../src/services/stayNameService';
+import { StayNameDialog } from '../src/components/StayNameDialog';
 import {
-  Screen, Intro, SectionHeader, PrimaryButton, LinkButton, Actions, Icon, Pills, SuccessMark, Counter, Em,
+  Screen, Intro, SectionHeader, PrimaryButton, LinkButton, Actions, Icon, Pills, Counter, Em,
   Text,
 } from '../src/components/ui';
 import { ChecklistGroup, ChecklistRow } from '../src/components/ChecklistRow';
 import { colors, type } from '../src/theme';
-import type { Item, UserDelay } from '../src/types';
+import type { Item, Stay, UserDelay } from '../src/types';
 
 const DELAYS: { value: UserDelay; label: string }[] = [
   { value: 'now', label: '방금' },
@@ -26,7 +28,9 @@ export default function LeaveCheckScreen() {
   const [items, setItems] = useState<Item[]>([]);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [recovered, setRecovered] = useState<Set<string>>(new Set());
-  const [place, setPlace] = useState<{ name: string; dwellMin: number } | null>(null);
+  const [place, setPlace] = useState<{ name: string; dwellMin: number; editable: boolean } | null>(null);
+  const [stay, setStay] = useState<Stay | null>(null);
+  const [editing, setEditing] = useState(false);
   const [logId, setLogId] = useState<string | null>(null);
   const [step, setStep] = useState<'items' | 'done'>('items');
   const [delay, setDelay] = useState<UserDelay | null>(null);
@@ -43,14 +47,16 @@ export default function LeaveCheckScreen() {
 
     const stay = stayId ? await getStay(stayId) : await getActiveStay(session.id);
     if (!stay) return;
+    setStay(stay);
     const [log, places] = await Promise.all([getLeaveLogByStayId(stay.id), getPlaces()]);
     if (log) setLogId(log.id);
-    const saved = places.find(p => p.id === stay.placeId)?.name;
+    const own = stay.customName || places.find(p => p.id === stay.placeId)?.name;
     const dwellMin = log?.dwellMin ?? (Date.now() - stay.arrivedAt) / 60000;
-    setPlace({ name: saved ?? '머문 장소', dwellMin });
-    if (!saved) {
+    const editable = !isHomeStay(stay, places);
+    setPlace({ name: own ?? '머문 장소', dwellMin, editable });
+    if (!own) {
       lookupPlaceName(stay.anchorLat, stay.anchorLng).then(name => {
-        if (name) setPlace({ name, dwellMin });
+        if (name) setPlace({ name, dwellMin, editable });
       });
     }
   }
@@ -87,8 +93,8 @@ export default function LeaveCheckScreen() {
     return (
       <Screen>
         <Stack.Screen options={{ title: '확인 완료' }} />
-        <SuccessMark />
         <Intro
+          mascot="happy"
           title={'확인했어요.\n이제 마음 편히 가세요.'}
           subtitle={recovered.size ? '돌아가서 챙긴 물건을 기록했어요.' : '챙긴 순간의 기록에 남겼어요.'}
         />
@@ -121,7 +127,7 @@ export default function LeaveCheckScreen() {
 
   return (
     <Screen>
-      <Intro title={<>잠깐,{'\n'}<Em>다 챙기셨나요?</Em></>} subtitle="주변을 한 번 둘러보고 확인해 주세요." />
+      <Intro mascot="alert" title={<>잠깐,{'\n'}<Em>다 챙기셨나요?</Em></>} subtitle="주변을 한 번 둘러보고 확인해 주세요." />
       {place && (
         <View style={styles.place}>
           <Icon name="coffee" size={21} color={colors.blue} />
@@ -129,8 +135,28 @@ export default function LeaveCheckScreen() {
             <Text style={styles.placeName}>{place.name}</Text>
             <Text style={type.small}>{Math.round(place.dwellMin)}분 머문 장소</Text>
           </View>
+          {place.editable && (
+            <Pressable
+              style={({ pressed }) => [styles.editName, pressed && { opacity: 0.6 }]}
+              onPress={() => setEditing(true)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`${place.name} 이름 고치기`}
+            >
+              <Icon name="pencil" size={16} color={colors.sub} />
+            </Pressable>
+          )}
         </View>
       )}
+      <StayNameDialog
+        stay={editing ? stay : null}
+        currentName={place?.name === '머문 장소' ? undefined : place?.name}
+        onClose={() => setEditing(false)}
+        onSaved={name => {
+          setPlace(p => (p ? { ...p, name } : p));
+          setStay(st => (st ? { ...st, customName: name } : st));
+        }}
+      />
       <SectionHeader
         first={!place}
         title="오늘의 소지품"
@@ -159,6 +185,10 @@ const styles = StyleSheet.create({
   place: {
     flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: colors.surface,
     borderRadius: 14, paddingVertical: 14, paddingHorizontal: 15, marginTop: -7,
+  },
+  editName: {
+    width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.card,
   },
   placeName: { fontSize: 14, fontWeight: '600', color: colors.ink },
 });

@@ -65,7 +65,7 @@ export default function ReturnCheckScreen() {
 
   return (
     <Screen>
-      <Intro title={<>잘 다녀오셨어요.{'\n'}<Em>모두 함께 왔나요?</Em></>} subtitle="없는 물건은 체크하지 않고 넘어가세요." />
+      <Intro mascot="hum" title={<>잘 다녀오셨어요.{'\n'}<Em>모두 함께 왔나요?</Em></>} subtitle="없는 물건은 체크하지 않고 넘어가세요." />
       <SectionHeader
         first
         title="오늘의 소지품"
@@ -95,7 +95,7 @@ export default function ReturnCheckScreen() {
 
       <Dialog
         visible={confirming}
-        icon="circle-alert"
+        mascot="question"
         title={`${unchecked.length}개가 아직 확인되지 않았어요`}
         message="이대로 마치면 귀가가 끝나고 위치 기록도 멈춰요."
         cancelLabel="계속 확인"

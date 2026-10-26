@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from './ui';
 import { WebView } from 'react-native-webview';
 
-type Coord = {
+export type Coord = {
   lat: number;
   lng: number;
   label?: string;
@@ -15,6 +15,8 @@ type Coord = {
 type Props = {
   coords: Coord[];
   height?: number;
+  /** Fill the parent (full-screen view) instead of using a fixed height. */
+  fill?: boolean;
 };
 
 export const PIN_COLORS = {
@@ -151,7 +153,7 @@ function buildHtml(coords: Coord[]): string {
 </html>`;
 }
 
-export function RouteMap({ coords, height = 320 }: Props) {
+export function RouteMap({ coords, height = 320, fill }: Props) {
   if (coords.length === 0) {
     return (
       <View style={[styles.empty, { height }]}>
@@ -163,7 +165,7 @@ export function RouteMap({ coords, height = 320 }: Props) {
   return (
     <WebView
       source={{ html: buildHtml(coords), baseUrl: MAP_ORIGIN }}
-      style={[styles.map, { height }]}
+      style={fill ? styles.fill : [styles.map, { height }]}
       scrollEnabled={false}
       javaScriptEnabled
       domStorageEnabled
@@ -174,6 +176,7 @@ export function RouteMap({ coords, height = 320 }: Props) {
 
 const styles = StyleSheet.create({
   map: { borderRadius: 14, overflow: 'hidden' },
+  fill: { flex: 1 },
   empty: {
     backgroundColor: '#F3F4F6', borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',

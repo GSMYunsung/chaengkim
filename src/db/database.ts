@@ -77,6 +77,12 @@ async function initSchema(database: SQLite.SQLiteDatabase) {
     );
   `);
 
+  // Added after release: a name the user typed for one stay. Older databases get the column here.
+  const stayCols = await database.getAllAsync<{ name: string }>('PRAGMA table_info(stays)');
+  if (!stayCols.some(c => c.name === 'customName')) {
+    await database.execAsync('ALTER TABLE stays ADD COLUMN customName TEXT');
+  }
+
   const count = await database.getFirstAsync<{ c: number }>('SELECT COUNT(*) as c FROM items');
   if (count && count.c === 0) {
     const now = Date.now();

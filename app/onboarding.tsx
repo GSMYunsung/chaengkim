@@ -77,6 +77,7 @@ export default function OnboardingScreen() {
       {step === 0 && (
         <>
           <Intro
+            mascot="heart"
             title={'잊기 쉬운 순간에,\n한 번 더 챙김.'}
             subtitle="출발할 때, 자리를 떠날 때, 집에 돌아왔을 때. 필요한 순간에만 짧게 확인해요."
           />
@@ -93,7 +94,7 @@ export default function OnboardingScreen() {
 
       {step === 1 && (
         <>
-          <Intro title={'돌아올 곳을\n알려주세요.'} subtitle="집에 도착하면 마지막 소지품 확인을 도와드려요." />
+          <Intro mascot="walk" title={'돌아올 곳을\n알려주세요.'} subtitle="집에 도착하면 마지막 소지품 확인을 도와드려요." />
           <View style={styles.place}>
             <Icon name="house" size={21} color={colors.blue} />
             <View style={{ flex: 1 }}>
@@ -118,7 +119,7 @@ export default function OnboardingScreen() {
 
       {step === 2 && (
         <>
-          <Intro title="늘 챙기는 물건부터" subtitle="나중에 언제든 추가하거나 바꿀 수 있어요." />
+          <Intro mascot="packing" title="늘 챙기는 물건부터" subtitle="나중에 언제든 추가하거나 바꿀 수 있어요." />
           <View style={styles.inventory}>
             {items.map(item => (
               <View key={item.id} style={styles.invItem}>

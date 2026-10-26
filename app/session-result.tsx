@@ -3,12 +3,14 @@ import { View, StyleSheet } from 'react-native';
 import { Stack, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import {
   getStaysForSession, getLeaveLogsForSession, getItems, getSession, getPlaces, getSavedItemsCountSince,
+  getAppStateValue,
 } from '../src/db/queries';
-import { RouteMap } from '../src/components/RouteMap';
+import { RouteMapCard } from '../src/components/RouteMapCard';
 import { TimelineList, buildSessionEntries } from '../src/components/Timeline';
 import { useStayNames } from '../src/hooks/useStayNames';
+import { stayName } from '../src/services/stayNameService';
 import {
-  Screen, Intro, Group, Row, ItemIcon, PrimaryButton, SecondaryButton, LinkButton, Actions, Strip, SuccessMark, SectionHeader,
+  Screen, Intro, Group, Row, ItemIcon, PrimaryButton, SecondaryButton, LinkButton, Actions, Strip, SectionHeader,
   Text,
 } from '../src/components/ui';
 import { colors, type } from '../src/theme';
@@ -31,6 +33,7 @@ export default function SessionResultScreen() {
   const [stayNames, resolveStayNames] = useStayNames();
   const [savedCount, setSavedCount] = useState(0);
   const [showMetrics, setShowMetrics] = useState(false);
+  const [testMode, setTestMode] = useState(false);
   const [showDay, setShowDay] = useState(false);
   const [names, setNames] = useState<Record<string, string>>({});
   const [leaving, setLeaving] = useState(false);
@@ -41,6 +44,11 @@ export default function SessionResultScreen() {
   useEffect(() => {
     if (leaving) router.replace('/');
   }, [leaving]);
+
+  // Measurement data is a testing aid, shown only in test mode.
+  useEffect(() => {
+    getAppStateValue('testMode').then(v => setTestMode(v === 'true'));
+  }, []);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -58,7 +66,7 @@ export default function SessionResultScreen() {
     ]);
     setStays(stayList);
     const checked = new Set(logList.map(l => l.stayId));
-    resolveStayNames(stayList.filter(st => checked.has(st.id) && !st.placeId));
+    resolveStayNames(stayList.filter(st => checked.has(st.id) && !st.placeId && !st.customName));
     setLogs(logList);
     setItems(allItems);
     setSession(s);
@@ -73,8 +81,9 @@ export default function SessionResultScreen() {
 
   // Most recent moment the user confirmed their belongings during this outing.
   const lastCheck = [...logs].reverse().find(l => l.action && l.action !== 'ignored');
+  const lastStay = lastCheck && stays.find(s => s.id === lastCheck.stayId);
   const lastCheckLabel = lastCheck
-    ? `${formatTime(lastCheck.notifiedAt)} · ${placeNames[stays.find(s => s.id === lastCheck.stayId)?.placeId ?? ''] ?? stayNames[lastCheck.stayId] ?? '머문 장소'}`
+    ? `${formatTime(lastCheck.notifiedAt)} · ${lastStay ? stayName(lastStay, placeNames, stayNames) ?? '머문 장소' : '머문 장소'}`
     : session ? `${formatTime(session.startedAt)} · 집에서 출발할 때` : '';
 
   const goHome = () => setLeaving(true);
@@ -90,12 +99,13 @@ export default function SessionResultScreen() {
         <View style={styles.day}>
           <SectionHeader first title="이번 외출 동선" />
           {stays.length > 0 ? (
-            <View style={styles.map}>
-              <RouteMap
-                height={260}
-                coords={stays.map(s => ({ lat: s.anchorLat, lng: s.anchorLng, label: formatTime(s.arrivedAt) }))}
-              />
-            </View>
+            <RouteMapCard
+              title="이번 외출 동선"
+              summary={`${stays.length}곳 기록`}
+              height={260}
+              legend={false}
+              coords={stays.map(s => ({ lat: s.anchorLat, lng: s.anchorLng, label: formatTime(s.arrivedAt) }))}
+            />
           ) : (
             <Text style={type.small}>기록된 위치가 없어요.</Text>
           )}
@@ -118,7 +128,7 @@ export default function SessionResultScreen() {
       />
       {missingItems.length ? (
         <>
-          <Intro title={`${missingItems.length}개가 보이지 않나요?`} subtitle="마지막으로 직접 확인한 기록을 살펴보세요." />
+          <Intro mascot="question" title={`${missingItems.length}개가 보이지 않나요?`} subtitle="마지막으로 직접 확인한 기록을 살펴보세요." />
           <Strip icon="search" tone="warn" text="현재 물건의 위치를 감지한 정보는 아니에요." />
           {missingItems.map(item => (
             <Group key={item.id} style={{ marginBottom: 12 }}>
@@ -132,8 +142,7 @@ export default function SessionResultScreen() {
         </>
       ) : (
         <>
-          <SuccessMark icon="house" />
-          <Intro title="오늘도 잘 챙겼어요." subtitle="외출을 마치고 위치 기록을 멈췄어요." />
+          <Intro mascot="heart" title="오늘도 잘 챙겼어요." subtitle="외출을 마치고 위치 기록을 멈췄어요." />
           <Group>
             <Row icon="check-check" title={`${sessionCount}개 소지품 확인 완료`} subtitle="모든 물건이 함께 돌아왔어요" />
           </Group>
@@ -152,14 +161,18 @@ export default function SessionResultScreen() {
         </>
       )}
 
-      <View style={styles.metricsToggle}>
-        <LinkButton
-          label={showMetrics ? '측정 데이터 숨기기' : '측정 데이터 보기 (테스트)'}
-          icon={showMetrics ? 'chevron-up' : 'chevron-down'}
-          onPress={() => setShowMetrics(v => !v)}
-        />
-      </View>
-      {showMetrics && <Metrics logs={logs} stays={stays} />}
+      {testMode && (
+        <>
+          <View style={styles.metricsToggle}>
+            <LinkButton
+              label={showMetrics ? '측정 데이터 숨기기' : '측정 데이터 보기 (테스트)'}
+              icon={showMetrics ? 'chevron-up' : 'chevron-down'}
+              onPress={() => setShowMetrics(v => !v)}
+            />
+          </View>
+          {showMetrics && <Metrics logs={logs} stays={stays} />}
+        </>
+      )}
     </Screen>
   );
 }
@@ -199,6 +212,5 @@ const styles = StyleSheet.create({
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: colors.surface, borderRadius: 16, padding: 8 },
   stat: { width: '33.33%', alignItems: 'center', paddingVertical: 12, gap: 2 },
   statValue: { fontSize: 18, fontWeight: '700', color: colors.ink, fontVariant: ['tabular-nums'] },
-  map: { backgroundColor: colors.surface, borderRadius: 16, padding: 8, overflow: 'hidden' },
   day: { marginTop: 8, marginBottom: 8 },
 });

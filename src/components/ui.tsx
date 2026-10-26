@@ -1,11 +1,13 @@
 import React from 'react';
 import {
   View, Text as RNText, TextInput as RNTextInput, StyleSheet, Pressable, ScrollView, ActivityIndicator, Modal,
+  KeyboardAvoidingView, Platform,
   type StyleProp, type ViewStyle, type TextProps, type TextInputProps,
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { Lucide, type LucideIconName } from '@react-native-vector-icons/lucide';
 import { colors, font, radius, space, type } from '../theme';
+import { Mascot, type MascotPose } from './Mascot';
 
 export { Lucide as Icon };
 export type { LucideIconName as IconName };
@@ -42,22 +44,54 @@ export function Screen({ children, edges = ['bottom'], header, scroll = true }: 
 export function TabHeader({ title, right }: { title: React.ReactNode; right?: React.ReactNode }) {
   return (
     <View style={styles.tabHeader}>
-      {typeof title === 'string' ? <Text style={styles.tabHeaderTitle}>{title}</Text> : title}
+      {typeof title === 'string'
+        ? <Text style={styles.tabHeaderTitle} accessibilityRole="header">{title}</Text>
+        : title}
       <View style={styles.tabHeaderRight}>{right}</View>
     </View>
   );
 }
 
-export function Intro({ eyebrow, title, subtitle }: {
-  eyebrow?: string;
-  title: React.ReactNode;
-  subtitle?: string;
+/** Primary action in a tab header, e.g. "＋ 추가". */
+export function HeaderButton({ label, icon = 'plus', onPress }: {
+  label: string;
+  icon?: LucideIconName;
+  onPress: () => void;
 }) {
   return (
-    <View style={styles.intro}>
+    <Pressable
+      style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={6}
+    >
+      <Lucide name={icon} size={17} color={colors.blue} />
+      <Text style={styles.headerButtonText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function Intro({ eyebrow, title, subtitle, mascot }: {
+  eyebrow?: string;
+  /** Omit on tab screens, where the tab header already is the big title. */
+  title?: React.ReactNode;
+  subtitle?: string;
+  /** Mascot pose shown beside the title for moments with a feeling (greeting, done, empty, alert). */
+  mascot?: MascotPose;
+}) {
+  const text = (
+    <>
       {!!eyebrow && <Text style={styles.eyebrow}>{eyebrow}</Text>}
-      <Text style={type.title}>{title}</Text>
-      {!!subtitle && <Text style={[type.body, { marginTop: 8 }]}>{subtitle}</Text>}
+      {title !== undefined && <Text style={type.title}>{title}</Text>}
+      {!!subtitle && <Text style={[type.body, title !== undefined && { marginTop: 8 }]}>{subtitle}</Text>}
+    </>
+  );
+  if (!mascot) return <View style={styles.intro}>{text}</View>;
+  return (
+    <View style={[styles.intro, styles.introRow]}>
+      <View style={{ flex: 1 }}>{text}</View>
+      <Mascot pose={mascot} size={104} />
     </View>
   );
 }
@@ -277,9 +311,13 @@ export function Pills<T extends string>({ options, value, onChange, columns = 2 
 }
 
 /** Centered confirmation dialog in the app's own style; use instead of Alert for in-app choices. */
-export function Dialog({ visible, icon, title, message, children, cancelLabel = '취소', confirmLabel, onCancel, onConfirm }: {
+export function Dialog({
+  visible, icon, mascot, title, message, children, cancelLabel = '취소', confirmLabel, onCancel, onConfirm,
+  confirmDisabled, loading,
+}: {
   visible: boolean;
   icon?: LucideIconName;
+  mascot?: MascotPose;
   title: string;
   message?: string;
   children?: React.ReactNode;
@@ -287,30 +325,33 @@ export function Dialog({ visible, icon, title, message, children, cancelLabel = 
   confirmLabel: string;
   onCancel: () => void;
   onConfirm: () => void;
+  confirmDisabled?: boolean;
+  loading?: boolean;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onCancel}>
-      <View style={styles.backdrop}>
+      <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} accessibilityLabel="닫기" />
         <View style={styles.dialog} accessibilityViewIsModal>
-          {icon && (
+          {mascot && <Mascot pose={mascot} size={96} style={styles.dialogMascot} />}
+          {!mascot && icon && (
             <View style={styles.dialogIcon}>
               <Lucide name={icon} size={24} color={colors.warn} />
             </View>
           )}
-          <Text style={styles.dialogTitle} accessibilityRole="header">{title}</Text>
-          {!!message && <Text style={[type.body, { marginTop: 6 }]}>{message}</Text>}
+          <Text style={[styles.dialogTitle, mascot && styles.centered]} accessibilityRole="header">{title}</Text>
+          {!!message && <Text style={[type.body, { marginTop: 6 }, mascot && styles.centered]}>{message}</Text>}
           {children}
           <View style={styles.dialogActions}>
             <View style={{ flex: 1 }}>
               <SecondaryButton label={cancelLabel} onPress={onCancel} />
             </View>
             <View style={{ flex: 1 }}>
-              <PrimaryButton label={confirmLabel} onPress={onConfirm} />
+              <PrimaryButton label={confirmLabel} onPress={onConfirm} disabled={confirmDisabled} loading={loading} />
             </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -328,12 +369,18 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: space.screen, paddingTop: 18, paddingBottom: 32 },
   tabHeader: {
-    height: 57, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: space.screen, gap: 10,
+    minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: space.screen, paddingTop: 6, gap: 10,
   },
-  tabHeaderTitle: { fontSize: 17, fontWeight: '600', color: colors.ink },
+  tabHeaderTitle: { fontSize: 28, lineHeight: 36, fontWeight: '800', letterSpacing: -1, color: colors.ink },
+  headerButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 38, paddingLeft: 12, paddingRight: 14,
+    borderRadius: 19, backgroundColor: colors.tint,
+  },
+  headerButtonText: { fontSize: 15, fontWeight: '700', color: colors.blue },
   tabHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   intro: { marginBottom: 25 },
+  introRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   eyebrow: { fontSize: 13, fontWeight: '600', color: colors.sub, marginBottom: 8, fontVariant: ['tabular-nums'] },
   section: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 11 },
   group: { backgroundColor: colors.surface, borderRadius: radius.group, overflow: 'hidden' },
@@ -386,6 +433,8 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: 16, backgroundColor: colors.wash,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
+  centered: { textAlign: 'center' },
+  dialogMascot: { alignSelf: 'center', marginBottom: 10 },
   dialogTitle: { fontSize: 19, lineHeight: 27, fontWeight: '700', letterSpacing: -0.5, color: colors.ink },
   dialogActions: { flexDirection: 'row', gap: 9, marginTop: 22 },
   success: {

@@ -44,6 +44,8 @@ export type Stay = {
   arrivedAt: number;
   leftAt?: number;
   placeId?: string;
+  /** Name the user gave this one stay; wins over the saved place and the looked-up shop name. */
+  customName?: string | null;
 };
 
 export type NotifiedBy = 'A' | 'B';
