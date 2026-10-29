@@ -100,24 +100,5 @@ async function initSchema(database: SQLite.SQLiteDatabase) {
   // Entries starting with "~" are Apple-address "no shop here" markers and stay.
   await database.runAsync("DELETE FROM app_state WHERE key LIKE 'poi:%' AND substr(value, 1, 1) <> '~'");
 
-  const count = await database.getFirstAsync<{ c: number }>('SELECT COUNT(*) as c FROM items');
-  if (count && count.c === 0) {
-    const now = Date.now();
-    await database.runAsync(
-      'INSERT INTO items (id, name, price, isDefault, createdAt) VALUES (?, ?, ?, ?, ?)',
-      ['item-wallet', '지갑', 100000, 1, now]
-    );
-    await database.runAsync(
-      'INSERT INTO items (id, name, price, isDefault, createdAt) VALUES (?, ?, ?, ?, ?)',
-      ['item-keys', '열쇠', 50000, 1, now]
-    );
-    await database.runAsync(
-      'INSERT INTO items (id, name, price, isDefault, createdAt) VALUES (?, ?, ?, ?, ?)',
-      ['item-airpods', '에어팟', 300000, 1, now]
-    );
-    await database.runAsync(
-      'INSERT INTO items (id, name, price, isDefault, createdAt) VALUES (?, ?, ?, ?, ?)',
-      ['item-charger', '충전기', 39000, 0, now]
-    );
-  }
+  // No starter items: onboarding asks for the user's own items, so the bag starts empty.
 }
