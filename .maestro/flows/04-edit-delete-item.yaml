@@ -11,7 +11,7 @@ name: "4 소지품 수정과 삭제"
 - runFlow:
     file: ../subflows/tap-until.yaml
     env:
-      TAP: "(?s).*우산.*원.*"
+      TAP: "(?s).*우산.*기본 포함.*"
       UNTIL: "소지품 수정"
 - eraseText: 10
 - tapOn: "(?s)우산"
@@ -28,7 +28,7 @@ name: "4 소지품 수정과 삭제"
 - runFlow:
     file: ../subflows/tap-until.yaml
     env:
-      TAP: "(?s).*장우산.*원.*"
+      TAP: "(?s).*장우산.*기본 포함.*"
       UNTIL: "이 소지품 삭제"
 # 삭제 확인 알림(제목 "소지품 삭제")
 - runFlow:
