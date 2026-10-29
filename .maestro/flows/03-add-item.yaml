@@ -2,9 +2,10 @@ appId: com.yuncastlee.chaengkim
 name: "3 소지품 추가"
 ---
 - waitForAnimationToEnd
-- tapOn:
-    text: "소지품, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "소지품, tab.*"
 - tapOn: "추가"
 - tapOn: "예: 우산"
 - inputText: "우산"
@@ -19,9 +20,10 @@ name: "3 소지품 추가"
     visible: "(?s).*우산.*"
     timeout: 10000
 - waitForAnimationToEnd
-- tapOn:
-    text: "홈, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "홈, tab.*"
 - waitForAnimationToEnd
 - assertVisible: "우산"
 - takeScreenshot: 03-home-with-umbrella

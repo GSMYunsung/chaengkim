@@ -1,0 +1,22 @@
+# 하단 탭을 그 탭이 "선택됨"이 될 때까지 누른다. 화면 전환(저장 후 닫힘 등)이 끝나기 전의 탭은
+# 무시되는데 Maestro는 화면이 바뀐 것으로 보고 다시 누르지 않기 때문이다.
+#   - runFlow:
+#       file: ../subflows/tap-tab.yaml
+#       env:
+#         TAB: "홈, tab.*"
+appId: ${APP_ID}
+---
+- repeat:
+    while:
+      notVisible:
+        text: ${TAB}
+        selected: true
+    times: 10
+    commands:
+      - tapOn:
+          text: ${TAB}
+          optional: true
+      - waitForAnimationToEnd
+- assertVisible:
+    text: ${TAB}
+    selected: true

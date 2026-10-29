@@ -18,9 +18,10 @@ name: "10 기록 캘린더"
 - tapOn:
     id: "BackButton"
 - waitForAnimationToEnd
-- tapOn:
-    text: "기록, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "기록, tab.*"
 - assertVisible: "(?s).*외출했어요.*"
 - takeScreenshot: 10-calendar
 # 어제 날짜 칸(외출 기록 있음)을 고른다.

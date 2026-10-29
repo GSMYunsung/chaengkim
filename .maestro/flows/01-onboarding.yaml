@@ -2,20 +2,13 @@ appId: com.yuncastlee.chaengkim
 name: "1 온보딩"
 ---
 - assertVisible: "(?s).*잊기 쉬운 순간에.*"
-- tapOn: "권한 허용하고 계속"
-# 위치 권한 창이 뜨면 허용한다(시뮬레이터 언어가 한국어). 항상 허용 안내 알림이 뜨면 닫는다.
-- tapOn:
-    text: "앱을 사용하는 동안 허용"
-    optional: true
-- tapOn:
-    text: "'항상 허용'으로 변경|항상 허용으로 변경"
-    optional: true
-- tapOn:
-    text: "OK|확인"
-    optional: true
-- extendedWaitUntil:
-    visible: "(?s).*돌아올 곳을.*"
-    timeout: 15000
+# 위치 권한 창(사용 중 → 항상 허용 변경 안내)이 뜨는 대로 허용하며 다음 화면까지 간다.
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "계속"
+      UNTIL: "(?s).*돌아올 곳을.*"
+      PROMPT: "앱을 사용하는 동안 허용|'항상 허용'으로 변경|항상 허용으로 변경|OK|확인"
 - takeScreenshot: 01-home-register
 - tapOn: "현재 위치를 집으로 등록"
 - extendedWaitUntil:

@@ -2,9 +2,10 @@ appId: com.yuncastlee.chaengkim
 name: "7 자리 뜰 때 (테스트 랩)"
 ---
 - waitForAnimationToEnd
-- tapOn:
-    text: "홈, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "홈, tab.*"
 - tapOn: "테스트 랩 열기"
 - assertVisible: ".*앵커 설정.*"
 - tapOn: ".*앵커 설정.*"

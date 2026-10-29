@@ -1,0 +1,30 @@
+# 화면을 가리는 창(시스템 권한 창, 개발 메뉴 등)을 TARGET 문구가 보일 때까지 닫는다.
+# 창은 번들 로딩이 끝난 뒤 늦게 뜨기도 하므로 고정 횟수로 누르지 않고, 목표가 보일 때까지 반복한다.
+# 새로운 가림 창이 생기면 여기에 한 줄 추가한다(개별 시나리오에 넣지 않는다).
+# 권한 선택 자체가 테스트 대상인 창(위치 권한 등)은 건드리지 않는다. 문구는 정확히 일치할 때만 눌리므로
+# "허용"은 "앱을 사용하는 동안 허용"과 겹치지 않는다.
+#   - runFlow:
+#       file: ../subflows/dismiss-overlays.yaml
+#       env:
+#         TARGET: "(?s).*잊기 쉬운 순간에.*"
+appId: ${APP_ID}
+---
+- repeat:
+    while:
+      notVisible: ${TARGET}
+    times: 15
+    commands:
+      # 알림 권한 창
+      - tapOn:
+          text: "허용|Allow"
+          optional: true
+      # 개발 빌드 메뉴(xmark 버튼, 한국어 시뮬레이터에서는 "닫기")
+      - tapOn:
+          text: "닫기|Close"
+          optional: true
+      # 그 밖의 안내 알림
+      - tapOn:
+          text: "확인|OK"
+          optional: true
+      - waitForAnimationToEnd
+- assertVisible: ${TARGET}

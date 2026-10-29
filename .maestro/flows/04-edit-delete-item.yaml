@@ -2,9 +2,10 @@ appId: com.yuncastlee.chaengkim
 name: "4 소지품 수정과 삭제"
 ---
 - waitForAnimationToEnd
-- tapOn:
-    text: "소지품, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "소지품, tab.*"
 - tapOn: "(?s).*우산.*원.*"
 - assertVisible: "소지품 수정"
 - eraseText: 10
@@ -16,7 +17,12 @@ name: "4 소지품 수정과 삭제"
     visible: "(?s).*장우산.*"
     timeout: 10000
 - takeScreenshot: 04-renamed
-- tapOn: "(?s).*장우산.*원.*"
+# 저장 후 편집 화면이 닫히는 중에 누르면 무시되므로, 편집 화면이 열릴 때까지 다시 누른다.
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "(?s).*장우산.*원.*"
+      UNTIL: "이 소지품 삭제"
 - tapOn: "이 소지품 삭제"
 - tapOn: "삭제"
 - assertNotVisible: "(?s).*장우산.*"

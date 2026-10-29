@@ -5,17 +5,12 @@ name: "0 준비"
 - launchApp:
     clearState: true
 - openLink: ${DEV_URL}
-# 첫 실행에 뜨는 알림 권한 창과 개발 빌드 메뉴를 닫는다(어느 쪽이 먼저 떠도 되게 두 번).
-- repeat:
-    times: 2
-    commands:
-      - tapOn:
-          text: "허용"
-          optional: true
-      - tapOn:
-          text: "Close"
-          optional: true
+# 번들 로딩을 기다린 뒤, 첫 실행에 뜨는 알림 권한 창 등 가림 창을 온보딩이 보일 때까지 닫는다.
 - extendedWaitUntil:
-    visible: "(?s).*잊기 쉬운 순간에.*"
-    timeout: 60000
+    notVisible: "(?s)(Bundling|Downloading).*"
+    timeout: 120000
+- runFlow:
+    file: ../subflows/dismiss-overlays.yaml
+    env:
+      TARGET: "(?s).*잊기 쉬운 순간에.*"
 - takeScreenshot: 00-onboarding-start
