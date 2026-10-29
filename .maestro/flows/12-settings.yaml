@@ -1,7 +1,8 @@
+# 전제: 아무 탭(키보드 닫힘)
+# 남김: 홈, 다음 출발 07:45 월·수(30분 전 알림)
 appId: com.yuncastlee.chaengkim
 name: "12 설정"
 ---
-# 앞 시나리오의 키보드가 내려가는 중이면 탭이 안 눌리므로 기다렸다가, 안 바뀌면 다시 누른다.
 - waitForAnimationToEnd
 # 이전 실행에서 남은 알림 창이 있으면 닫는다.
 - tapOn:
@@ -11,9 +12,7 @@ name: "12 설정"
     file: ../subflows/tap-tab.yaml
     env:
       TAB: "설정, tab.*"
-- extendedWaitUntil:
-    visible: "출발 알림"
-    timeout: 10000
+- assertVisible: "출발 알림"
 # 출발 시각 입력칸(현재 값 HH:MM)의 오른쪽 끝을 눌러 커서를 맨 뒤에 두고 새 시각을 넣는다.
 - tapOn:
     text: "[0-9]{2}:[0-9]{2}"
@@ -31,6 +30,7 @@ name: "12 설정"
     text: "수"
     selected: false
     optional: true
+# lint: no-result — 선택 칩은 문구가 바뀌지 않는다(알림 시각은 홈 타일에 나오지 않는다).
 - tapOn: "30분"
 - takeScreenshot: 12-settings
 - waitForAnimationToEnd

@@ -1,19 +1,39 @@
+# 전제: 홈 외출 전, 소지품 지갑·열쇠·에어팟
+# 남김: 홈 외출 전, 연속 챙김 1번
 appId: com.yuncastlee.chaengkim
 name: "9 귀가 (모두 있음)"
 ---
-- tapOn: "지금 출발.*"
-- tapOn: ".*챙기고 외출 시작"
-- extendedWaitUntil:
-    visible: "집에 도착했어요"
-    timeout: 10000
-- tapOn: "집에 도착했어요"
-- tapOn: "모두 있어요"
-- tapOn: "모두 확인하고 마치기"
-- extendedWaitUntil:
-    visible: "오늘도 잘 챙겼어요."
-    timeout: 10000
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "지금 출발.*"
+      UNTIL: "(?s).*골라 주세요.*"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: ".*챙기고 외출 시작"
+      UNTIL: "집에 도착했어요"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "집에 도착했어요"
+      UNTIL: "(?s).*모두 함께 왔나요.*"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "모두 있어요"
+      UNTIL: "모두 확인하고 마치기"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "모두 확인하고 마치기"
+      UNTIL: "오늘도 잘 챙겼어요."
 - takeScreenshot: 09-result-all
-- tapOn: "홈으로"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "홈으로"
+      UNTIL: "다챙김"
 - scrollUntilVisible:
     element: "연속 챙김.*"
     direction: DOWN

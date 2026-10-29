@@ -1,0 +1,17 @@
+# iOS 뒤로 가기 버튼(BackButton)을 UNTIL이 보일 때까지 누른다(back 명령은 안드로이드 전용).
+#   - runFlow:
+#       file: ../subflows/back-until.yaml
+#       env:
+#         UNTIL: "홈, tab.*"
+appId: ${APP_ID}
+---
+- repeat:
+    while:
+      notVisible: ${UNTIL}
+    times: 10
+    commands:
+      - tapOn:
+          id: "BackButton"
+          optional: true
+      - waitForAnimationToEnd
+- assertVisible: ${UNTIL}

@@ -1,3 +1,5 @@
+# 전제: 소지품에 우산이 있음
+# 남김: 소지품 탭, 우산 삭제(지갑·열쇠·에어팟)
 appId: com.yuncastlee.chaengkim
 name: "4 소지품 수정과 삭제"
 ---
@@ -6,24 +8,38 @@ name: "4 소지품 수정과 삭제"
     file: ../subflows/tap-tab.yaml
     env:
       TAB: "소지품, tab.*"
-- tapOn: "(?s).*우산.*원.*"
-- assertVisible: "소지품 수정"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "(?s).*우산.*원.*"
+      UNTIL: "소지품 수정"
 - eraseText: 10
 - tapOn: "(?s)우산"
 - eraseText: 10
 - inputText: "장우산"
-- tapOn: "저장"
-- extendedWaitUntil:
-    visible: "(?s).*장우산.*"
-    timeout: 10000
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "저장"
+      UNTIL: "(?s).*챙기고 있어요.*"
+- assertVisible: "(?s).*장우산.*"
 - takeScreenshot: 04-renamed
-# 저장 후 편집 화면이 닫히는 중에 누르면 무시되므로, 편집 화면이 열릴 때까지 다시 누른다.
+# 저장 후 목록으로 돌아오는 중의 탭은 무시될 수 있다.
 - runFlow:
     file: ../subflows/tap-until.yaml
     env:
       TAP: "(?s).*장우산.*원.*"
       UNTIL: "이 소지품 삭제"
-- tapOn: "이 소지품 삭제"
-- tapOn: "삭제"
+# 삭제 확인 알림(제목 "소지품 삭제")
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "이 소지품 삭제"
+      UNTIL: "소지품 삭제"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "삭제"
+      UNTIL: "(?s).*챙기고 있어요.*"
 - assertNotVisible: "(?s).*장우산.*"
 - takeScreenshot: 04-deleted

@@ -19,3 +19,6 @@ GRANT=(location-always)
 # Turn on the simulator's Reduce Motion so looping animations stop and the screen settles between taps
 # (the app should honor AccessibilityInfo.isReduceMotionEnabled). 0 to test with full motion.
 REDUCE_MOTION=1
+
+# Static check of flows before each run (lint-flows.py): strict stops the run on findings.
+LINT=strict

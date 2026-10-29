@@ -1,3 +1,5 @@
+# 전제: 기록 탭에 이름을 고칠 머문 곳이 있음(10의 샘플 기록)
+# 남김: 기록 탭, 머문 곳 이름 "단골 카페", 키보드 닫힘
 appId: com.yuncastlee.chaengkim
 name: "11 기록에서 이름 수정"
 ---
@@ -9,14 +11,20 @@ name: "11 기록에서 이름 수정"
 - scrollUntilVisible:
     element: ".*이름 고치기"
     direction: DOWN
-- tapOn: ".*이름 고치기"
-- assertVisible: "머문 곳 이름"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: ".*이름 고치기"
+      UNTIL: "머문 곳 이름"
 - eraseText: 30
 - inputText: "단골 카페"
-- tapOn: "저장"
-- extendedWaitUntil:
-    visible: "단골 카페"
-    timeout: 10000
+# 이름 대화상자가 닫힐 때까지
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "저장"
+      GONE: "머문 곳 이름"
+- assertVisible: "(?s).*단골 카페.*"
 - takeScreenshot: 11-renamed
 # 이름 입력 키보드가 탭 바를 가리지 않게, 화면을 끌어 닫는다(제목을 눌러서는 닫히지 않음).
 - swipe:

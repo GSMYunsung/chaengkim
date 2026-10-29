@@ -1,27 +1,47 @@
-# TAP을 UNTIL이 보일 때까지 누른다. 화면 전환 중(시스템 창이 닫힌 직후, 저장 후 닫히는 중)의 탭은
+# TAP을 다음 상태가 될 때까지 누른다. 화면 전환 중(시스템 창이 닫힌 직후, 저장 후 닫히는 중)의 탭은
 # 무시되는데 Maestro는 화면이 바뀐 것으로 보고 다시 누르지 않기 때문이다.
-# PROMPT(선택): 그 동작이 띄우는 창의 버튼(권한 창 등)을 정규식으로. 뜨는 대로 누른다.
+#   UNTIL: 다음 화면에만 있는 문구(보일 때까지)        — 둘 중 하나
+#   GONE:  사라져야 하는 문구(창·대화상자가 닫힐 때까지)
+#   PROMPT(선택): 그 동작이 띄우는 창의 버튼(권한 창 등). 뜨는 대로 누른다.
+# 누를 때마다 데이터가 생기는 버튼(한 번만 눌러야 함)에는 쓰지 않는다.
 #   - runFlow:
 #       file: ../subflows/tap-until.yaml
 #       env:
 #         TAP: "계속"
 #         UNTIL: "(?s).*다음 화면 문구.*"
-#         PROMPT: "앱을 사용하는 동안 허용"
+# 머리에 env 기본값을 두지 않는다: 호출하는 쪽이 넘긴 값보다 머리 기본값이 우선한다(Maestro).
+# 넘기지 않은 값은 typeof로 확인한다.
 appId: ${APP_ID}
-env:
-  PROMPT: "__no_prompt__"
 ---
 - tapOn: ${TAP}
-- repeat:
-    while:
-      notVisible: ${UNTIL}
-    times: 10
+- runFlow:
+    when:
+      true: ${typeof UNTIL !== 'undefined' && UNTIL != ''}
     commands:
-      - tapOn:
-          text: ${PROMPT}
-          optional: true
-      - tapOn:
-          text: ${TAP}
-          optional: true
-      - waitForAnimationToEnd
-- assertVisible: ${UNTIL}
+      - repeat:
+          while:
+            notVisible: ${UNTIL}
+          times: 10
+          commands:
+            - tapOn:
+                text: "${typeof PROMPT === 'undefined' ? '__no_prompt__' : PROMPT}"
+                optional: true
+            - tapOn:
+                text: ${TAP}
+                optional: true
+            - waitForAnimationToEnd
+      - assertVisible: ${UNTIL}
+- runFlow:
+    when:
+      true: ${typeof GONE !== 'undefined' && GONE != ''}
+    commands:
+      - repeat:
+          while:
+            visible: ${GONE}
+          times: 10
+          commands:
+            - tapOn:
+                text: ${TAP}
+                optional: true
+            - waitForAnimationToEnd
+      - assertNotVisible: ${GONE}

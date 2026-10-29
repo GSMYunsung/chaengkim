@@ -1,9 +1,13 @@
-# 준비: 앱 데이터 초기화 후 개발 빌드를 이 Mac의 Metro(localhost:8082)에 연결해 연다.
+# 준비: 앱 데이터를 지우고 개발 빌드를 이 Mac의 Metro(localhost:8082)에 연결해 연다.
+# 전제: 없음(앱 데이터를 지운다)
+# 남김: 온보딩 첫 화면, 앱 데이터 없음(소지품 0개)
 appId: com.yuncastlee.chaengkim
 name: "0 준비"
 ---
 - launchApp:
     clearState: true
+    permissions:
+      all: allow
 - openLink: ${DEV_URL}
 # 번들 로딩을 기다린 뒤, 첫 실행에 뜨는 알림 권한 창 등 가림 창을 온보딩이 보일 때까지 닫는다.
 - extendedWaitUntil:
