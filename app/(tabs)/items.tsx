@@ -15,7 +15,6 @@ import {
 import { Mascot } from "../../src/components/Mascot";
 import { colors, type } from "../../src/theme";
 import { itemIcon } from "../../src/utils/itemIcon";
-import { formatWon } from "../../src/utils/format";
 import type { Item } from "../../src/types";
 
 export default function ItemsScreen() {
@@ -90,7 +89,7 @@ export default function ItemsScreen() {
               icon={itemIcon(item.name)}
               iconStyle="tile"
               title={item.name}
-              subtitle={`${formatWon(item.price)}원 · ${item.isDefault ? "기본 포함" : "필요할 때 추가"}`}
+              subtitle={item.isDefault ? "기본 포함" : "필요할 때 추가"}
               onPress={() =>
                 router.push({ pathname: "/item-edit", params: { id: item.id } })
               }

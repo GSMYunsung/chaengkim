@@ -11,7 +11,6 @@ export default function ItemEditScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [item, setItem] = useState<Item | null>(null);
   const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
   const [isDefault, setIsDefault] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -22,20 +21,18 @@ export default function ItemEditScreen() {
       if (!found) return;
       setItem(found);
       setName(found.name);
-      setPrice(String(found.price));
       setIsDefault(found.isDefault);
     });
   }, [id]);
 
   async function handleSave() {
     const trimmed = name.trim();
-    const parsed = price ? parseInt(price, 10) : 0;
-    if (!trimmed || isNaN(parsed) || parsed < 0) {
-      Alert.alert('입력 확인', '이름과 올바른 가격을 입력해 주세요.');
+    if (!trimmed) {
+      Alert.alert('입력 확인', '물건 이름을 입력해 주세요.');
       return;
     }
     setSaving(true);
-    await upsertItem({ id: item?.id, name: trimmed, price: parsed, isDefault });
+    await upsertItem({ id: item?.id, name: trimmed, isDefault });
     setSaving(false);
     router.back();
   }
@@ -61,15 +58,6 @@ export default function ItemEditScreen() {
         placeholderTextColor="#9AA3B0"
         maxLength={30}
         autoFocus={!id}
-      />
-      <Text style={styles.label}>가격 (원)</Text>
-      <TextInput
-        style={styles.input}
-        value={price}
-        onChangeText={v => setPrice(v.replace(/[^0-9]/g, ''))}
-        placeholder="0"
-        placeholderTextColor="#9AA3B0"
-        keyboardType="number-pad"
       />
 
       <Group>

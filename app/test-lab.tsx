@@ -4,7 +4,7 @@ import { Text, TextInput } from '../src/components/ui';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { getAppStateValue, setAppStateValue, getActiveSession, createStay, createLeaveLog, getAllLeaveLogs, getActiveStay, getItems, upsertItem } from '../src/db/queries';
+import { getAppStateValue, setAppStateValue, getActiveSession, createStay, createLeaveLog, getAllLeaveLogs, getActiveStay, getItems } from '../src/db/queries';
 import { sendLeaveNotification } from '../src/services/notificationService';
 import { startOutingSession, endOutingSession } from '../src/services/sessionService';
 import { registerAnchorGeofence } from '../src/services/locationService';
@@ -38,7 +38,6 @@ export default function TestLabScreen() {
   const [mockLngInput, setMockLngInput] = useState('');
   const [mockCoord, setMockCoord] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [items, setItems] = useState<Item[]>([]);
-  const [itemPrices, setItemPrices] = useState<Record<string, string>>({});
 
   useFocusEffect(useCallback(() => {
     loadState();
@@ -58,7 +57,6 @@ export default function TestLabScreen() {
     setLogs(await getAllLeaveLogs());
     const allItems = await getItems();
     setItems(allItems);
-    setItemPrices(Object.fromEntries(allItems.map(i => [i.id, String(i.price)])));
     const mockLat = await getAppStateValue('mockLat');
     const mockLng = await getAppStateValue('mockLng');
     const mockLabel = await getAppStateValue('mockLabel');
@@ -127,21 +125,6 @@ export default function TestLabScreen() {
     if (mockCoord) return { latitude: mockCoord.lat, longitude: mockCoord.lng };
     if (location) return location.coords;
     return null;
-  }
-
-  async function handleSavePrices() {
-    await Promise.all(
-      items.map(item => {
-        const parsed = parseInt(itemPrices[item.id] ?? '0', 10);
-        const price = isNaN(parsed) || parsed < 0 ? 0 : parsed;
-        return upsertItem({ ...item, price });
-      })
-    );
-    const allItems = await getItems();
-    setItems(allItems);
-    setItemPrices(Object.fromEntries(allItems.map(i => [i.id, String(i.price)])));
-    Keyboard.dismiss();
-    Alert.alert('저장됨', '소지품 금액이 업데이트됐어요.');
   }
 
   async function handleStartTestSession() {
@@ -347,29 +330,6 @@ export default function TestLabScreen() {
           </View>
         </View>
 
-        {/* 소지품 금액 설정 — 테스트 모드일 때만 */}
-        {testMode && (
-          <View style={[styles.card, styles.cardMock]}>
-            <Text style={styles.cardTitle}>💰 소지품 금액 설정</Text>
-            {items.map(item => (
-              <View key={item.id} style={priceStyles.row}>
-                <Text style={priceStyles.name}>{item.name}</Text>
-                <TextInput
-                  style={priceStyles.input}
-                  keyboardType="number-pad"
-                  value={itemPrices[item.id] ?? '0'}
-                  onChangeText={v => setItemPrices(prev => ({ ...prev, [item.id]: v.replace(/[^0-9]/g, '') }))}
-                  selectTextOnFocus
-                />
-                <Text style={priceStyles.unit}>원</Text>
-              </View>
-            ))}
-            <TouchableOpacity style={styles.applyBtn} onPress={handleSavePrices}>
-              <Text style={styles.applyBtnText}>금액 저장</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         <View style={styles.card}>
           <Text style={styles.cardTitle}>세션 상태</Text>
           <View style={styles.statusRow}>
@@ -480,17 +440,6 @@ const styles = StyleSheet.create({
   logAction: { fontSize: 12, color: COLORS.textSecondary },
   logTime: { fontSize: 11, color: '#9CA3AF', width: 44, textAlign: 'right' },
   emptyLogs: { textAlign: 'center', color: COLORS.textSecondary, fontSize: 13, marginTop: 12 },
-});
-
-const priceStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  name: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
-  input: {
-    width: 90, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1.5,
-    borderColor: '#D1FAE5', paddingHorizontal: 10, paddingVertical: 8,
-    fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'right',
-  },
-  unit: { fontSize: 13, color: COLORS.textSecondary, marginLeft: 6, width: 16 },
 });
 
 const badgeStyles = StyleSheet.create({

@@ -10,9 +10,6 @@ export function formatTime(ts: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export function formatWon(amount: number): string {
-  return amount.toLocaleString('ko-KR');
-}
 
 export function startOfMonth(ts = Date.now()): number {
   const d = new Date(ts);

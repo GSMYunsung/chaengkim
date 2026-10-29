@@ -17,7 +17,7 @@
 | `src/db/database.ts` 초기 데이터(기본 물건 없음) | 01이 지갑·열쇠·에어팟을 직접 담고 05~09가 이 물건을 쓴다 |
 | `app/(tabs)/index.tsx` 홈 (외출 전/중, 지금 출발, 테스트 랩 버튼, 위치 꺼짐 안내) | 02, 05, 07, 08, 09, 10, 13 |
 | `app/(tabs)/_layout.tsx` 탭 라벨 | 03, 04, 05, 07, 08, 10, 11, 12 |
-| `app/(tabs)/items.tsx`, `app/item-edit.tsx` | 03 소지품 추가, 04 수정과 삭제 |
+| `app/(tabs)/items.tsx`, `app/item-edit.tsx` (이름·기본 포함만, 가격 없음 #4) | 03 소지품 추가, 04 수정과 삭제(줄은 부제 "기본 포함"으로 찾는다) |
 | `app/departure.tsx` | 05 출발 체크, 09, 13 |
 | `app/leave-check.tsx` | 06 외출 중 확인, 07 자리 뜰 때 |
 | `app/test-lab.tsx` | 07 이탈 시뮬레이션, 10 샘플 기록 |

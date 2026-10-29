@@ -18,10 +18,10 @@ export async function upsertItem(item: Omit<Item, 'id' | 'createdAt'> & { id?: s
   const id = item.id ?? generateId();
   const now = Date.now();
   await db.runAsync(
-    'INSERT OR REPLACE INTO items (id, name, price, isDefault, createdAt) VALUES (?, ?, ?, ?, ?)',
-    [id, item.name, item.price, item.isDefault ? 1 : 0, now]
+    'INSERT OR REPLACE INTO items (id, name, isDefault, createdAt) VALUES (?, ?, ?, ?)',
+    [id, item.name, item.isDefault ? 1 : 0, now]
   );
-  return { id, name: item.name, price: item.price, isDefault: item.isDefault, createdAt: now };
+  return { id, name: item.name, isDefault: item.isDefault, createdAt: now };
 }
 
 export async function deleteItem(id: string): Promise<void> {
