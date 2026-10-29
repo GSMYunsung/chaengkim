@@ -96,9 +96,15 @@ export default function SettingsScreen() {
 
   async function registerHome() {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status, canAskAgain } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('위치 권한 필요', '집 위치를 등록하려면 위치 권한이 필요해요.');
+        // iOS asks only once; after a denial the button would otherwise do nothing. Settings opens
+        // only if the user chooses it (App Review 5.1.1(iv)).
+        if (canAskAgain) return;
+        Alert.alert('위치가 꺼져 있어요', '집을 등록하려면 기기 설정에서 챙김의 위치 접근을 허용해 주세요.', [
+          { text: '취소', style: 'cancel' },
+          { text: '설정 열기', onPress: () => Linking.openSettings() },
+        ]);
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });

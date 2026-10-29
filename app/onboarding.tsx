@@ -18,27 +18,21 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [homeSet, setHomeSet] = useState(false);
+  const [canLocate, setCanLocate] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
 
   useEffect(() => {
     getItems().then(all => setItems(all.filter(i => i.isDefault)));
   }, []);
 
+  // App Review 5.1.1(iv): whatever the user answers, onboarding moves on without
+  // nudging them toward Settings. Features that need location say so where they are used.
   async function handlePermissions() {
     setLoading(true);
     await setupNotifications();
-    const { foreground, background } = await requestPermissions();
+    const { foreground } = await requestPermissions();
+    setCanLocate(foreground);
     setLoading(false);
-    if (!foreground) {
-      Alert.alert('위치 권한 필요', '머문 장소를 떠나는 순간을 알려면 위치 권한이 필요해요.');
-      return;
-    }
-    if (!background) {
-      Alert.alert(
-        '항상 위치 허용',
-        '"항상 허용"이 아니면 자리 뜰 때 알림이 오지 않아요. 기기 설정에서 바꿀 수 있어요.'
-      );
-    }
     setStep(1);
   }
 
@@ -82,12 +76,12 @@ export default function OnboardingScreen() {
             subtitle="출발할 때, 자리를 떠날 때, 집에 돌아왔을 때. 필요한 순간에만 짧게 확인해요."
           />
           <Group>
-            <Row icon="bell" title="알림 허용" subtitle="확인할 순간을 놓치지 않도록" />
-            <Row icon="map-pin" title="위치 허용" subtitle="머문 장소를 떠나는 순간을 알 수 있도록" />
+            <Row icon="bell" title="알림" subtitle="확인할 순간을 놓치지 않도록" />
+            <Row icon="map-pin" title="위치" subtitle="머문 장소를 떠나는 순간을 알 수 있도록" />
           </Group>
           <Note>사용 중 위치 → 항상 위치 순서로 요청해요. 물건 자체를 감지하지는 않아요.</Note>
           <Actions>
-            <PrimaryButton label="권한 허용하고 계속" onPress={handlePermissions} loading={loading} />
+            <PrimaryButton label="계속" onPress={handlePermissions} loading={loading} />
           </Actions>
         </>
       )}
@@ -99,7 +93,11 @@ export default function OnboardingScreen() {
             <Icon name="house" size={21} color={colors.blue} />
             <View style={{ flex: 1 }}>
               <Text style={styles.placeName}>우리 집</Text>
-              <Text style={type.small}>{homeSet ? '현재 위치로 등록했어요' : '지금 집에 있다면 현재 위치로 등록하세요'}</Text>
+              <Text style={type.small}>
+                {homeSet ? '현재 위치로 등록했어요'
+                  : canLocate ? '지금 집에 있다면 현재 위치로 등록하세요'
+                  : '위치를 허용하지 않아 나중에 설정 탭에서 등록할 수 있어요'}
+              </Text>
             </View>
             {homeSet && <Icon name="check" size={20} color={colors.blue} />}
           </View>
@@ -107,11 +105,13 @@ export default function OnboardingScreen() {
           <Actions>
             {homeSet ? (
               <PrimaryButton label="다음" onPress={() => setStep(2)} />
-            ) : (
+            ) : canLocate ? (
               <>
                 <PrimaryButton label="현재 위치를 집으로 등록" onPress={handleSetHome} loading={loading} />
                 <SecondaryButton label="나중에 설정하기" onPress={() => setStep(2)} />
               </>
+            ) : (
+              <PrimaryButton label="다음" onPress={() => setStep(2)} />
             )}
           </Actions>
         </>
