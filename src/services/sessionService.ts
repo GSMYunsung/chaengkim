@@ -9,7 +9,9 @@ export async function startOutingSession(
   const existing = await getActiveSession();
   if (existing) return existing;
   const session = await createSession(trigger, itemIds);
-  await startTracking();
+  // Without location permission the outing still runs: the manual leave and return
+  // checks work, only the automatic leave alerts are off (home shows a note).
+  await startTracking().catch(() => {});
   return session;
 }
 

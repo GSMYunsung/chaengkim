@@ -2,9 +2,10 @@ appId: com.yuncastlee.chaengkim
 name: "5 출발 체크"
 ---
 - waitForAnimationToEnd
-- tapOn:
-    text: "홈, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "홈, tab.*"
 - tapOn: "지금 출발.*"
 - assertVisible: "(?s).*골라 주세요.*"
 # 기본 물건 중 하나(충전기가 아닌 첫 기본 물건)를 빼고 출발한다.

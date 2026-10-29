@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, StyleSheet, Pressable, Image } from "react-native";
+import { View, StyleSheet, Pressable, Image, Linking } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   getActiveSession,
@@ -16,6 +16,7 @@ import { RouteMapCard } from "../../src/components/RouteMapCard";
 import { BagStage } from "../../src/components/BagStage";
 import { StayNameDialog } from "../../src/components/StayNameDialog";
 import { isHomeStay, stayName } from "../../src/services/stayNameService";
+import { checkPermissions } from "../../src/services/locationService";
 import {
   Screen,
   TabHeader,
@@ -50,6 +51,7 @@ export default function HomeScreen() {
   const [todayStays, setTodayStays] = useState<Stay[]>([]);
   const [stopIds, setStopIds] = useState<Set<string>>(new Set());
   const [stopNames, resolveStopNames] = useStayNames();
+  const [alwaysLocation, setAlwaysLocation] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
@@ -63,7 +65,7 @@ export default function HomeScreen() {
       router.replace("/onboarding");
       return;
     }
-    const [s, all, sched, count, stays, dwellMin, testMode, placeList] = await Promise.all(
+    const [s, all, sched, count, stays, dwellMin, testMode, placeList, perm] = await Promise.all(
       [
         getActiveSession(),
         getItems(),
@@ -73,9 +75,11 @@ export default function HomeScreen() {
         getDwellThresholdMin(),
         getAppStateValue("testMode"),
         getPlaces(),
+        checkPermissions(),
       ],
     );
     setPlaces(placeList);
+    setAlwaysLocation(perm.background);
     setSession(s);
     setItems(all);
     setLoaded(true);
@@ -187,6 +191,19 @@ export default function HomeScreen() {
           </View>
         </View>
       </BagStage>
+
+      {!alwaysLocation && (
+        // Shown instead of asking again: Settings opens only when the user taps it (App Review 5.1.1).
+        <Group style={{ marginBottom: 12 }}>
+          <Row
+            icon="map-pin-off"
+            title="자리 뜰 때 알림이 꺼져 있어요"
+            subtitle="위치를 '항상 허용'하면 머문 곳을 떠날 때 알려드려요. 눌러서 설정 열기"
+            onPress={() => Linking.openSettings()}
+            chevron
+          />
+        </Group>
+      )}
 
       <View style={styles.tiles}>
         {active ? (

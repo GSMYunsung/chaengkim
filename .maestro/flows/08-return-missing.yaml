@@ -2,9 +2,10 @@ appId: com.yuncastlee.chaengkim
 name: "8 귀가 (빠뜨림)"
 ---
 - waitForAnimationToEnd
-- tapOn:
-    text: "홈, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "홈, tab.*"
 - tapOn: "집에 도착했어요"
 - assertVisible: "(?s).*모두 함께 왔나요.*"
 - tapOn: "모두 있어요"

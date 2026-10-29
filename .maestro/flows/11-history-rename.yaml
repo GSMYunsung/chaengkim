@@ -2,9 +2,10 @@ appId: com.yuncastlee.chaengkim
 name: "11 기록에서 이름 수정"
 ---
 - waitForAnimationToEnd
-- tapOn:
-    text: "기록, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "기록, tab.*"
 - scrollUntilVisible:
     element: ".*이름 고치기"
     direction: DOWN

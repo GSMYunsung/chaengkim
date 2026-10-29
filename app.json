@@ -15,8 +15,7 @@
         "NSLocationWhenInUseUsageDescription": "현재 위치를 파악해 체류 장소를 감지합니다.",
         "NSLocationAlwaysUsageDescription": "백그라운드에서도 위치를 추적해 자리를 뜰 때 소지품 알림을 드립니다.",
         "UIBackgroundModes": [
-          "location",
-          "fetch"
+          "location"
         ]
       },
       "config": {
@@ -107,7 +106,16 @@
       ],
       "expo-sharing",
       "expo-sqlite",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -7,9 +7,10 @@ name: "12 설정"
 - tapOn:
     text: "OK"
     optional: true
-- tapOn:
-    text: "설정, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "설정, tab.*"
 - extendedWaitUntil:
     visible: "출발 알림"
     timeout: 10000
@@ -33,9 +34,10 @@ name: "12 설정"
 - tapOn: "30분"
 - takeScreenshot: 12-settings
 - waitForAnimationToEnd
-- tapOn:
-    text: "홈, tab.*"
-    retryTapIfNoChange: true
+- runFlow:
+    file: ../subflows/tap-tab.yaml
+    env:
+      TAB: "홈, tab.*"
 # 홈이 어디까지 스크롤돼 있든 같은 결과가 나오게 맨 위로 올린 뒤 타일까지 내린다.
 - scrollUntilVisible:
     element: "지금 출발.*"

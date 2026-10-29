@@ -23,6 +23,10 @@ npx expo install --fix      # fix incompatible package versions
 
 Run lint and typecheck before declaring any task done.
 
+## Screen tests (Maestro)
+
+Scenarios live in `.maestro/flows`, run by the global `maestro-test` skill. When you change screen text, buttons, accessibility labels, screen order, permission prompts or add a screen, update the affected scenarios in the same task — `.maestro/TESTING.md` maps each screen file to its scenarios.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
