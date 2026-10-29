@@ -24,7 +24,6 @@ async function initSchema(database: SQLite.SQLiteDatabase) {
     CREATE TABLE IF NOT EXISTS items (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
-      price INTEGER NOT NULL DEFAULT 0,
       isDefault INTEGER NOT NULL DEFAULT 0,
       createdAt INTEGER NOT NULL
     );
@@ -85,6 +84,11 @@ async function initSchema(database: SQLite.SQLiteDatabase) {
     );
   `);
 
+  // Removed after release: items had a price the app never used. Drop it from older databases.
+  const itemCols = await database.getAllAsync<{ name: string }>('PRAGMA table_info(items)');
+  if (itemCols.some(c => c.name === 'price')) {
+    await database.execAsync('ALTER TABLE items DROP COLUMN price');
+  }
   // Added after release: a name the user typed for one stay. Older databases get the column here.
   const stayCols = await database.getAllAsync<{ name: string }>('PRAGMA table_info(stays)');
   if (!stayCols.some(c => c.name === 'customName')) {
