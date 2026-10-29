@@ -1,0 +1,41 @@
+# 온보딩 3단계에서 소지품 하나를 추가하고 3단계로 돌아온다(챙김 전용).
+#   FIRST: "true"면 물건이 0개일 때의 경로 — "챙김 시작하기" → 안내 알림 → 확인 → 추가 화면.
+#          아니면 격자의 "소지품 추가" 칸으로 연다.
+#   - runFlow:
+#       file: ../subflows/onboarding-add-item.yaml
+#       env:
+#         NAME: "지갑"
+#         FIRST: "true"
+appId: ${APP_ID}
+---
+- runFlow:
+    when:
+      true: ${typeof FIRST !== 'undefined' && FIRST == 'true'}
+    commands:
+      - runFlow:
+          file: tap-until.yaml
+          env:
+            TAP: "챙김 시작하기"
+            UNTIL: "소지품을 하나 이상 추가해 주세요"
+      - takeScreenshot: onboarding-needs-item
+      - runFlow:
+          file: tap-until.yaml
+          env:
+            TAP: "확인"
+            UNTIL: "예: 우산"
+- runFlow:
+    when:
+      true: ${typeof FIRST === 'undefined' || FIRST != 'true'}
+    file: tap-until.yaml
+    env:
+      TAP: "소지품 추가"
+      UNTIL: "예: 우산"
+- tapOn: "예: 우산"
+- inputText: ${NAME}
+# 저장하면 3단계로 돌아온다(입력칸에도 NAME이 있으므로 3단계 제목으로 판단한다).
+- runFlow:
+    file: tap-until.yaml
+    env:
+      TAP: "저장"
+      UNTIL: "늘 챙기는 물건부터"
+- assertVisible: ${NAME}

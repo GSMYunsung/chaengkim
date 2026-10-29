@@ -1,3 +1,5 @@
+# 전제: 홈 외출 중
+# 남김: 홈 외출 중, 머문 곳 이름 "회사"
 appId: com.yuncastlee.chaengkim
 name: "7 자리 뜰 때 (테스트 랩)"
 ---
@@ -6,41 +8,65 @@ name: "7 자리 뜰 때 (테스트 랩)"
     file: ../subflows/tap-tab.yaml
     env:
       TAB: "홈, tab.*"
-- tapOn: "테스트 랩 열기"
-- assertVisible: ".*앵커 설정.*"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "테스트 랩 열기"
+      UNTIL: ".*앵커 설정.*"
+# lint: no-result — 앵커는 화면 문구로 드러나지 않는다. 안 먹혔으면 이어지는 이탈 시뮬레이션 버튼이 꺼져 있어 거기서 실패한다.
 - tapOn: ".*앵커 설정.*"
 # 앵커 설정 결과 알림은 위치 조회 시간에 따라 늦게 뜨거나 안 뜰 수 있어 있으면 닫는다.
 - waitForAnimationToEnd
 - tapOn:
     text: "OK|확인"
     optional: true
-# 이탈 버튼은 화면 맨 아래에 반쯤 걸려 있어, 가운데로 올린 뒤 화면이 바뀔 때까지 누른다.
+# 이탈 버튼은 화면 맨 아래에 반쯤 걸려 있어 가운데로 올린 뒤, 체크 화면이 뜰 때까지 누른다.
 - scrollUntilVisible:
     element: ".*이탈 시뮬레이션.*"
     direction: DOWN
     centerElement: true
-- tapOn:
-    text: ".*이탈 시뮬레이션.*"
-    retryTapIfNoChange: true
-- extendedWaitUntil:
-    visible: "(?s).*다 챙기셨나요.*"
-    timeout: 15000
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: ".*이탈 시뮬레이션.*"
+      UNTIL: "(?s).*다 챙기셨나요.*"
+      PROMPT: "OK|확인"
 - takeScreenshot: 07-leave-check
-- tapOn: ".*이름 고치기"
-- assertVisible: "머문 곳 이름"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: ".*이름 고치기"
+      UNTIL: "머문 곳 이름"
 - eraseText: 30
 - inputText: "회사"
-- tapOn: "저장"
-- assertVisible: "회사"
+# 이름 대화상자가 닫힐 때까지
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "저장"
+      GONE: "머문 곳 이름"
+- assertVisible: "(?s).*회사.*"
 - takeScreenshot: 07-renamed
-- tapOn: "모두 있어요"
-- tapOn: "모두 확인했어요"
-- assertVisible: "몇 분 전에 나오셨나요?"
+# 이름 대화상자가 닫힌 직후의 탭은 무시될 수 있다.
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "모두 있어요"
+      UNTIL: "모두 확인했어요"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "모두 확인했어요"
+      UNTIL: "몇 분 전에 나오셨나요?"
+# lint: no-result — 선택 칩은 문구가 바뀌지 않는다. 안 먹혔으면 다음 저장 단계에서 실패한다.
 - tapOn: "방금"
-- tapOn: "응답 저장하고 계속"
-# 응답을 저장하면 테스트 랩으로 돌아오므로 홈으로 돌아간다.
-- tapOn:
-    id: "BackButton"
-- extendedWaitUntil:
-    visible: "홈, tab.*"
-    timeout: 10000
+# 응답을 저장하면 테스트 랩으로 돌아온다.
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "응답 저장하고 계속"
+      UNTIL: ".*앵커 설정.*"
+- runFlow:
+    file: ../subflows/back-until.yaml
+    env:
+      UNTIL: "홈, tab.*"

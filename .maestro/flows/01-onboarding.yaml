@@ -1,3 +1,5 @@
+# 전제: 00의 온보딩 첫 화면, 소지품 0개
+# 남김: 홈(외출 전), 집 등록됨, 소지품 지갑·열쇠·에어팟(모두 기본 포함)
 appId: com.yuncastlee.chaengkim
 name: "1 온보딩"
 ---
@@ -10,14 +12,36 @@ name: "1 온보딩"
       UNTIL: "(?s).*돌아올 곳을.*"
       PROMPT: "앱을 사용하는 동안 허용|'항상 허용'으로 변경|항상 허용으로 변경|OK|확인"
 - takeScreenshot: 01-home-register
-- tapOn: "현재 위치를 집으로 등록"
-- extendedWaitUntil:
-    visible: "다음"
-    timeout: 20000
-- tapOn: "다음"
-- assertVisible: "늘 챙기는 물건부터"
-- takeScreenshot: 01-default-items
-- tapOn: "챙김 시작하기"
-- extendedWaitUntil:
-    visible: "(?s).*담았어요.*"
-    timeout: 15000
+# 위치 조회가 끝나면 버튼이 "다음"으로 바뀐다(조회 중에는 스피너라 다시 눌리지 않는다).
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "현재 위치를 집으로 등록"
+      UNTIL: "다음"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "다음"
+      UNTIL: "늘 챙기는 물건부터"
+- takeScreenshot: 01-empty-items
+# 기본 물건이 없으므로(#1) 0개로는 시작할 수 없다: 알림 → 확인 → 추가 화면으로 간다.
+# 이후 시나리오가 쓰는 지갑·열쇠·에어팟을 직접 담는다.
+- runFlow:
+    file: ../subflows/onboarding-add-item.yaml
+    env:
+      NAME: "지갑"
+      FIRST: "true"
+- runFlow:
+    file: ../subflows/onboarding-add-item.yaml
+    env:
+      NAME: "열쇠"
+- runFlow:
+    file: ../subflows/onboarding-add-item.yaml
+    env:
+      NAME: "에어팟"
+- takeScreenshot: 01-items-added
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "챙김 시작하기"
+      UNTIL: "(?s).*담았어요.*"

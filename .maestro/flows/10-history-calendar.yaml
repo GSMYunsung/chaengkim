@@ -1,22 +1,33 @@
+# 전제: 홈 외출 전(테스트 랩의 샘플 버튼은 외출 중이 아닐 때만 켜진다)
+# 남김: 기록 탭, 샘플 기록(어제 외출 포함)
 appId: com.yuncastlee.chaengkim
 name: "10 기록 캘린더"
 ---
-- tapOn: "테스트 랩 열기"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "테스트 랩 열기"
+      UNTIL: ".*앵커 설정.*"
 # 샘플 버튼은 화면 아래쪽에 있어 가운데로 올린 뒤 누른다.
 - scrollUntilVisible:
     element: ".*샘플 기록 넣기.*"
     direction: DOWN
     centerElement: true
-- tapOn:
-    text: ".*샘플 기록 넣기.*"
-    retryTapIfNoChange: true
-# 결과 알림은 저장과 정리가 끝난 뒤 뜬다.
+# lint: once — 누를 때마다 샘플 기록이 들어가므로 다시 누르지 않고, 결과 알림을 기다린다.
+- tapOn: ".*샘플 기록 넣기.*"
 - extendedWaitUntil:
     visible: "OK|확인"
     timeout: 20000
-- tapOn: "OK|확인"
-- tapOn:
-    id: "BackButton"
+# 결과 알림(제목 "샘플 기록 추가")을 닫는다.
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "OK|확인"
+      GONE: "샘플 기록 추가"
+- runFlow:
+    file: ../subflows/back-until.yaml
+    env:
+      UNTIL: "홈, tab.*"
 - waitForAnimationToEnd
 - runFlow:
     file: ../subflows/tap-tab.yaml
@@ -25,6 +36,7 @@ name: "10 기록 캘린더"
 - assertVisible: "(?s).*외출했어요.*"
 - takeScreenshot: 10-calendar
 # 어제 날짜 칸(외출 기록 있음)을 고른다.
+# lint: no-result — 선택한 날의 상세는 아래 단계(지도)가 확인한다.
 - tapOn: ".*외출 [0-9]+번.*"
 - takeScreenshot: 10-day-selected
 - scrollUntilVisible:

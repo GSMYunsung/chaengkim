@@ -1,5 +1,7 @@
 # 위치를 거부해도 온보딩이 막히지 않고, 설정 앱으로 보내지 않는지(App Review 5.1.1(iv)).
 # launchApp은 기본으로 모든 권한을 허용하므로, 위치만 미설정으로 두어 권한 창이 다시 뜨게 한다.
+# 전제: 없음(앱 데이터를 지운다)
+# 남김: 홈 외출 중, 위치 거부, 소지품 지갑
 appId: com.yuncastlee.chaengkim
 name: "13 위치 거부"
 ---
@@ -23,19 +25,34 @@ name: "13 위치 거부"
       PROMPT: "허용 안 함"
 - assertNotVisible: "현재 위치를 집으로 등록"
 - takeScreenshot: 13-denied-home-step
-- tapOn: "다음"
-- tapOn: "챙김 시작하기"
-- extendedWaitUntil:
-    visible: "(?s).*담았어요.*"
-    timeout: 15000
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "다음"
+      UNTIL: "늘 챙기는 물건부터"
+- runFlow:
+    file: ../subflows/onboarding-add-item.yaml
+    env:
+      NAME: "지갑"
+      FIRST: "true"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "챙김 시작하기"
+      UNTIL: "(?s).*담았어요.*"
 # 아이콘이 있는 행이라 라벨 앞에 ", "가 붙는다.
 - assertVisible: "(?s).*자리 뜰 때 알림이 꺼져 있어요.*"
 - takeScreenshot: 13-denied-home-notice
 # 위치 없이도 외출을 시작하고 끝낼 수 있다.
-- tapOn: "지금 출발.*"
-- tapOn: ".*챙기고 외출 시작"
-- extendedWaitUntil:
-    visible: "외출 중"
-    timeout: 15000
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "지금 출발.*"
+      UNTIL: "(?s).*골라 주세요.*"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: ".*챙기고 외출 시작"
+      UNTIL: "외출 중"
 - assertVisible: "집에 도착했어요"
 - takeScreenshot: 13-denied-outing

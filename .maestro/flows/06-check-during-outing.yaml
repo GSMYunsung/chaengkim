@@ -1,18 +1,43 @@
+# 전제: 홈 외출 중, 챙긴 물건에 열쇠 포함
+# 남김: 홈 외출 중
 appId: com.yuncastlee.chaengkim
 name: "6 외출 중 소지품 확인"
 ---
-- tapOn: "소지품 확인"
-- assertVisible: "(?s).*다 챙기셨나요.*"
-- tapOn: "열쇠"
-- tapOn: "확인한 물건으로 완료"
-- assertVisible: "(?s).*아직 확인하지 않았어요.*"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "소지품 확인"
+      UNTIL: "(?s).*다 챙기셨나요.*"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "열쇠"
+      UNTIL: "1 / 2 확인"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "확인한 물건으로 완료"
+      UNTIL: "(?s).*아직 확인하지 않았어요.*"
 - takeScreenshot: 06-unchecked-dialog
-- tapOn: "계속 확인"
-- tapOn: "모두 있어요"
-- assertVisible: "모두 확인했어요"
-- tapOn: "모두 확인했어요"
-- extendedWaitUntil:
-    visible: "(?s).*확인했어요.*마음 편히.*"
-    timeout: 5000
+# 알림을 닫고 체크 화면으로 돌아온다.
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "계속 확인"
+      UNTIL: "모두 있어요"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "모두 있어요"
+      UNTIL: "모두 확인했어요"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "모두 확인했어요"
+      UNTIL: "(?s).*확인했어요.*마음 편히.*"
 - takeScreenshot: 06-done
-- tapOn: "홈으로"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "홈으로"
+      UNTIL: "다챙김"

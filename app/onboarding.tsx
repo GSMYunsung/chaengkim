@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { View, StyleSheet, Alert, Pressable } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { requestPermissions } from '../src/services/locationService';
 import { setupNotifications } from '../src/services/notificationService';
@@ -9,7 +9,7 @@ import {
   Screen, Intro, Group, Row, Note, PrimaryButton, SecondaryButton, Actions, ItemIcon, Icon,
   Text,
 } from '../src/components/ui';
-import { colors, type } from '../src/theme';
+import { colors, radius, type } from '../src/theme';
 import { itemIcon } from '../src/utils/itemIcon';
 import type { Item } from '../src/types';
 
@@ -21,9 +21,10 @@ export default function OnboardingScreen() {
   const [canLocate, setCanLocate] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
 
-  useEffect(() => {
+  // Reload on focus so items added from the item screen show up when coming back.
+  useFocusEffect(useCallback(() => {
     getItems().then(all => setItems(all.filter(i => i.isDefault)));
-  }, []);
+  }, []));
 
   // App Review 5.1.1(iv): whatever the user answers, onboarding moves on without
   // nudging them toward Settings. Features that need location say so where they are used.
@@ -56,6 +57,13 @@ export default function OnboardingScreen() {
   }
 
   async function handleFinish() {
+    // The app has nothing to check without items, so the first one is required.
+    if (items.length === 0) {
+      Alert.alert('소지품을 하나 이상 추가해 주세요', '나갈 때마다 함께 확인할 물건이에요.', [
+        { text: '확인', onPress: () => router.push('/item-edit') },
+      ]);
+      return;
+    }
     await setAppStateValue('onboarded', 'true');
     router.replace('/');
   }
@@ -127,6 +135,17 @@ export default function OnboardingScreen() {
                 <Text style={styles.invName} numberOfLines={2}>{item.name}</Text>
               </View>
             ))}
+            <Pressable
+              style={({ pressed }) => [styles.invItem, pressed && { opacity: 0.75 }]}
+              onPress={() => router.push('/item-edit')}
+              accessibilityRole="button"
+              accessibilityLabel="소지품 추가"
+            >
+              <View style={styles.addIcon}>
+                <Icon name="plus" size={21} color={colors.blue} />
+              </View>
+              <Text style={[styles.invName, { color: colors.blue }]}>추가</Text>
+            </Pressable>
           </View>
           <Actions>
             <PrimaryButton label="챙김 시작하기" onPress={handleFinish} />
@@ -148,5 +167,9 @@ const styles = StyleSheet.create({
   placeName: { fontSize: 14, fontWeight: '600', color: colors.ink },
   inventory: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 7 },
   invItem: { width: '25%', alignItems: 'center', gap: 7, paddingVertical: 6 },
+  addIcon: {
+    width: 40, height: 40, borderRadius: radius.icon, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderStyle: 'dashed', borderColor: colors.checkedBorder,
+  },
   invName: { fontSize: 12, lineHeight: 17, fontWeight: '500', color: colors.ink, textAlign: 'center' },
 });
