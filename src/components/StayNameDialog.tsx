@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { Dialog, TextInput } from './ui';
 import { colors } from '../theme';
 import { renameStay } from '../services/stayNameService';
+import { track } from '../services/analytics';
 import type { Stay } from '../types';
 
 /** Asks for a name for one stay and saves it. `stay` null keeps the dialog closed. */
@@ -32,6 +33,7 @@ function Inner({ stay, currentName, onClose, onSaved }: {
     if (!trimmed) return;
     setSaving(true);
     await renameStay(stay, trimmed);
+    track('stay_renamed');
     setSaving(false);
     onSaved(trimmed);
     onClose();

@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getActiveSession, getItems, setSessionReturnedItems, recordReturnStreak } from '../src/db/queries';
 import { endOutingSession } from '../src/services/sessionService';
+import { track } from '../src/services/analytics';
 import {
   Screen, Intro, SectionHeader, PrimaryButton, SecondaryButton, Actions, Counter, Em, Dialog, ItemIcon, Text,
 } from '../src/components/ui';
@@ -52,6 +53,7 @@ export default function ReturnCheckScreen() {
     await setSessionReturnedItems(sessionId, items.filter(i => present.has(i.id)).map(i => i.id));
     await recordReturnStreak(items.length > 0 && missing.length === 0);
     await endOutingSession(sessionId);
+    track('return_check_completed', { item_count: items.length, missing_count: missing.length });
     setLoading(false);
     router.replace({
       pathname: '/session-result',

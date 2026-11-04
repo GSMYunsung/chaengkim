@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Switch, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getItems, upsertItem, deleteItem } from '../src/db/queries';
+import { track } from '../src/services/analytics';
 import { Screen, Intro, Group, Row, PrimaryButton, Actions, LinkButton, Text, TextInput } from '../src/components/ui';
 import { colors } from '../src/theme';
 import type { Item } from '../src/types';
@@ -33,6 +34,7 @@ export default function ItemEditScreen() {
     }
     setSaving(true);
     await upsertItem({ id: item?.id, name: trimmed, isDefault });
+    track('item_saved', { is_new: !item, is_default: isDefault });
     setSaving(false);
     router.back();
   }
@@ -41,7 +43,7 @@ export default function ItemEditScreen() {
     if (!item) return;
     Alert.alert('소지품 삭제', `${item.name}을(를) 목록에서 지울까요?`, [
       { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => { await deleteItem(item.id); router.back(); } },
+      { text: '삭제', style: 'destructive', onPress: async () => { await deleteItem(item.id); track('item_deleted'); router.back(); } },
     ]);
   }
 

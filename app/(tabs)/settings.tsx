@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Pressable, Alert, Linking } from 'react-native';
+import { View, StyleSheet, Pressable, Alert, Linking, Switch } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
@@ -11,6 +11,7 @@ import {
   scheduleWeeklyDepartureNotification, cancelDepartureNotification,
 } from '../../src/services/notificationService';
 import { checkPermissions } from '../../src/services/locationService';
+import { track, analyticsAvailable, isAnalyticsEnabled, setAnalyticsEnabled } from '../../src/services/analytics';
 import { Screen, TabHeader, SectionHeader, Group, Row, Icon, Note, Pills, Text, TextInput } from '../../src/components/ui';
 import { colors } from '../../src/theme';
 import { WEEKDAYS } from '../../src/utils/format';
@@ -32,6 +33,7 @@ export default function SettingsScreen() {
   const [home, setHome] = useState<Place | null>(null);
   const [atHome, setAtHome] = useState(false);
   const [perm, setPerm] = useState({ location: false, notifications: false });
+  const [sharing, setSharing] = useState(isAnalyticsEnabled());
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
@@ -88,6 +90,7 @@ export default function SettingsScreen() {
     const n = Number(v);
     setDwell(n);
     await setAppStateValue('dwellMin', String(n));
+    track('dwell_threshold_changed', { minutes: n });
   }
 
   function isAtHome(h: Place, pos: Location.LocationObject) {
@@ -131,6 +134,7 @@ export default function SettingsScreen() {
         kind: 'home',
         extraItemIds: home?.extraItemIds ?? [],
       });
+      track('home_registered', { replaced: !!home });
       setHome(saved);
       setAtHome(true);
     } catch {
@@ -216,6 +220,26 @@ export default function SettingsScreen() {
         <Row title="알림 허용" subtitle="출발과 자리 이동 때 알려드려요" right={status(perm.notifications)} onPress={() => Linking.openSettings()} />
       </Group>
       <Note>권한은 기기 설정에서 바꿀 수 있어요. 항목을 누르면 설정으로 이동해요.</Note>
+
+      {analyticsAvailable && (
+        <>
+          <SectionHeader title="사용 기록" />
+          <Group>
+            <Row
+              title="익명 사용 기록 보내기"
+              subtitle="어떤 기능을 쓰는지만 보내요. 위치·장소·물건 이름은 보내지 않아요"
+              right={
+                <Switch
+                  value={sharing}
+                  onValueChange={async on => { setSharing(on); await setAnalyticsEnabled(on); }}
+                  trackColor={{ true: colors.blue }}
+                  accessibilityLabel="익명 사용 기록 보내기"
+                />
+              }
+            />
+          </Group>
+        </>
+      )}
     </Screen>
   );
 }

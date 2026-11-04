@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, Alert, Pressable } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { requestPermissions } from '../src/services/locationService';
+import { track } from '../src/services/analytics';
 import { setupNotifications } from '../src/services/notificationService';
 import { upsertPlace, setAppStateValue, getItems } from '../src/db/queries';
 import {
@@ -21,6 +22,8 @@ export default function OnboardingScreen() {
   const [canLocate, setCanLocate] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
 
+  useEffect(() => { track('onboarding_step_viewed', { step }); }, [step]);
+
   // Reload on focus so items added from the item screen show up when coming back.
   useFocusEffect(useCallback(() => {
     getItems().then(all => setItems(all.filter(i => i.isDefault)));
@@ -33,6 +36,7 @@ export default function OnboardingScreen() {
     await setupNotifications();
     const { foreground } = await requestPermissions();
     setCanLocate(foreground);
+    track('onboarding_permission_answered', { location: foreground });
     setLoading(false);
     setStep(1);
   }
@@ -50,6 +54,7 @@ export default function OnboardingScreen() {
         extraItemIds: [],
       });
       setHomeSet(true);
+      track('onboarding_home_set');
     } catch {
       Alert.alert('오류', '현재 위치를 가져올 수 없어요.');
     }
@@ -59,12 +64,14 @@ export default function OnboardingScreen() {
   async function handleFinish() {
     // The app has nothing to check without items, so the first one is required.
     if (items.length === 0) {
+      track('onboarding_blocked_no_items');
       Alert.alert('소지품을 하나 이상 추가해 주세요', '나갈 때마다 함께 확인할 물건이에요.', [
         { text: '확인', onPress: () => router.push('/item-edit') },
       ]);
       return;
     }
     await setAppStateValue('onboarded', 'true');
+    track('onboarding_completed', { item_count: items.length });
     router.replace('/');
   }
 
