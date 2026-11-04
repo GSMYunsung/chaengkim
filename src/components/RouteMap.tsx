@@ -3,7 +3,6 @@ import { StyleSheet, View, Pressable } from 'react-native';
 import { Text, Icon } from './ui';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { colors } from '../theme';
-import { distanceM } from '../utils/geo';
 
 export type Coord = {
   lat: number;
@@ -39,25 +38,19 @@ const MAP_ORIGIN = 'https://www.choiyunsung.dev';
 // How long to wait for the Kakao SDK before showing the "couldn't load" state.
 const LOAD_TIMEOUT_MS = 8000;
 
-// Walking past the anchor radius records a point about every minute, so passing points get a
-// dot only this far from the previous dot; the line still runs through all of them.
-const PATH_DOT_SPACING_M = 500;
-
+// Walking past the anchor radius records a point about every minute, so only the start, the
+// stops and the last position get a dot; the line still runs through every point.
 type Pin = Coord & { color: string; radius: number; dot: boolean };
 
 function toPins(coords: Coord[]): Pin[] {
-  let last: Coord | null = null;
   return coords.map((c, i) => {
     const edge = i === 0 ? 'start' : i === coords.length - 1 ? 'end' : null;
-    const dot = !!(c.stop || edge || !last
-      || distanceM(last.lat, last.lng, c.lat, c.lng) >= PATH_DOT_SPACING_M);
-    if (dot) last = c;
     return {
       ...c,
       label: c.label ?? `${i + 1}`,
       color: c.stop ? PIN_COLORS.stop : edge ? PIN_COLORS[edge] : PIN_COLORS.path,
-      radius: c.stop ? 11 : edge ? 9 : 5,
-      dot,
+      radius: c.stop ? 11 : 9,
+      dot: !!(c.stop || edge),
     };
   });
 }

@@ -1,6 +1,7 @@
 import { getDatabase } from './database';
 import { getItems, setAppStateValue, pruneOldRecords, getSessionsSince } from './queries';
 import { startOfMonth } from '../utils/format';
+import { distanceM } from '../utils/geo';
 
 // Test-lab only: fills history with believable outings so the timeline, maps, streak and
 // month-based pruning can be checked without walking around for weeks.
@@ -16,6 +17,8 @@ const SPOTS = [
 ];
 
 const MIN = 60_000;
+/** Passing points recorded while walking away from each stay (one per ~100m). */
+const WALK_POINTS = 15;
 let seq = 0;
 const id = (p: string) => `sample-${p}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
 
@@ -64,6 +67,18 @@ export async function seedSampleHistory(): Promise<{ added: number; kept: number
           [id('ll'), stayId, dwell, left, left, 110 + k * 15, k % 2 ? '1-3' : 'now',
             recovered.length ? 'opened' : 'allChecked', JSON.stringify(recovered)],
         );
+        // Walking on toward the next spot records a passing stay every ~100m (about a minute),
+        // the density real tracking produces, so the map's dot thinning can be checked.
+        const next = SPOTS[(n + k + 1) % SPOTS.length];
+        const steps = Math.min(WALK_POINTS, Math.floor(distanceM(spot.lat, spot.lng, next.lat, next.lng) / 100));
+        for (let w = 1; w <= steps; w++) {
+          const f = (w * 100) / distanceM(spot.lat, spot.lng, next.lat, next.lng);
+          const at = left + w * MIN;
+          await db.runAsync(
+            'INSERT INTO stays (id, sessionId, anchorLat, anchorLng, arrivedAt, leftAt) VALUES (?, ?, ?, ?, ?, ?)',
+            [id('st'), sessionId, spot.lat + (next.lat - spot.lat) * f, spot.lng + (next.lng - spot.lng) * f, at, at + MIN],
+          );
+        }
         t = left + 20 * MIN;
       }
 
