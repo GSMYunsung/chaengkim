@@ -1,11 +1,12 @@
 import '../src/tasks/backgroundTasks';
 import { useEffect } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { setupNotifications, LEAVE_ACTION_ALL_CHECKED } from '../src/services/notificationService';
 import { getLeaveLogByStayId, updateLeaveLogResponse, pruneOldRecords } from '../src/db/queries';
 import { colors, font } from '../src/theme';
+import { track, trackScreen } from '../src/services/analytics';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -18,6 +19,9 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => { trackScreen(pathname); }, [pathname]);
 
   useEffect(() => {
     setupNotifications();
@@ -27,11 +31,13 @@ export default function RootLayout() {
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as any;
+      if (data?.type) track('notification_opened', { type: data.type });
       if (data?.type === 'departure') {
         router.push('/departure');
       } else if (data?.type === 'leave') {
         if (response.actionIdentifier === LEAVE_ACTION_ALL_CHECKED) {
           // "모두 챙김" answered from the notification itself: record it without opening a screen.
+          track('leave_answered_from_notification');
           getLeaveLogByStayId(data.stayId).then(log => {
             if (log && !log.action) updateLeaveLogResponse(log.id, undefined, 'allChecked', []);
           });

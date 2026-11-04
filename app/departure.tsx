@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { getItems } from '../src/db/queries';
 import { startOutingSession } from '../src/services/sessionService';
+import { track } from '../src/services/analytics';
 import { Screen, Intro, SectionHeader, PrimaryButton, Actions, Counter, Em } from '../src/components/ui';
 import { ChecklistGroup, ChecklistRow } from '../src/components/ChecklistRow';
 import type { Item } from '../src/types';
@@ -30,6 +31,7 @@ export default function DepartureScreen() {
   async function handleStart() {
     setLoading(true);
     await startOutingSession('manual', Array.from(checked));
+    track('outing_started', { item_count: checked.size });
     setLoading(false);
     router.replace('/');
   }
