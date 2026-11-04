@@ -3,7 +3,7 @@
     "name": "챙김",
     "slug": "chaengkim",
     "scheme": "chaengkim",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon/icon-1024.png",
     "userInterfaceStyle": "light",
