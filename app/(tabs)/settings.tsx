@@ -69,6 +69,7 @@ export default function SettingsScreen() {
       created.push(s);
     }
     setSchedules(created);
+    track('departure_schedule_saved', { day_count: nextDays.length });
   }
 
   function toggleDay(d: number) {
@@ -216,8 +217,8 @@ export default function SettingsScreen() {
 
       <SectionHeader title="권한 상태" />
       <Group>
-        <Row title="항상 위치 허용" subtitle="외출 중에만 위치를 기록해요" right={status(perm.location)} onPress={() => Linking.openSettings()} />
-        <Row title="알림 허용" subtitle="출발과 자리 이동 때 알려드려요" right={status(perm.notifications)} onPress={() => Linking.openSettings()} />
+        <Row title="항상 위치 허용" subtitle="외출 중에만 위치를 기록해요" right={status(perm.location)} onPress={() => { track('permission_settings_opened', { from: 'settings_location' }); Linking.openSettings(); }} />
+        <Row title="알림 허용" subtitle="출발과 자리 이동 때 알려드려요" right={status(perm.notifications)} onPress={() => { track('permission_settings_opened', { from: 'settings_notifications' }); Linking.openSettings(); }} />
       </Group>
       <Note>권한은 기기 설정에서 바꿀 수 있어요. 항목을 누르면 설정으로 이동해요.</Note>
 

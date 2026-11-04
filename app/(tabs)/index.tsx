@@ -31,6 +31,7 @@ import {
   type IconName,
 } from "../../src/components/ui";
 import { colors, type } from "../../src/theme";
+import { track } from "../../src/services/analytics";
 import {
   WEEKDAYS,
   formatTime,
@@ -158,7 +159,7 @@ export default function HomeScreen() {
         label={active ? "오늘 함께하는 물건" : "오늘 챙길 물건"}
         items={shown}
         ready={loaded}
-        onAdd={() => router.push("/item-edit")}
+        onAdd={() => { track("home_action_pressed", { action: "add_item" }); router.push("/item-edit"); }}
         canAdd={!active}
         walking={active}
       >
@@ -167,26 +168,26 @@ export default function HomeScreen() {
             <>
               <PrimaryButton
                 label="소지품 확인"
-                onPress={() => router.push("/leave-check")}
+                onPress={() => { track("home_action_pressed", { action: "leave_check" }); router.push("/leave-check"); }}
               />
               <SecondaryButton
                 label="집에 도착했어요"
                 onTint
-                onPress={() => router.push("/return-check")}
+                onPress={() => { track("home_action_pressed", { action: "return_check" }); router.push("/return-check"); }}
               />
             </>
           ) : (
             <PrimaryButton
               label="지금 출발"
               icon="arrow-right"
-              onPress={() => router.push("/departure")}
+              onPress={() => { track("home_action_pressed", { action: "departure" }); router.push("/departure"); }}
             />
           )}
           <View style={{ alignItems: "center" }}>
             <LinkButton
               label="소지품 편집"
               icon="chevron-right"
-              onPress={() => router.push("/items")}
+              onPress={() => { track("home_action_pressed", { action: "edit_items" }); router.push("/items"); }}
             />
           </View>
         </View>
@@ -199,7 +200,7 @@ export default function HomeScreen() {
             icon="map-pin-off"
             title="자리 뜰 때 알림이 꺼져 있어요"
             subtitle="위치를 '항상 허용'하면 머문 곳을 떠날 때 알려드려요. 눌러서 설정 열기"
-            onPress={() => Linking.openSettings()}
+            onPress={() => { track("permission_settings_opened", { from: "home_banner" }); Linking.openSettings(); }}
             chevron
           />
         </Group>
@@ -223,7 +224,7 @@ export default function HomeScreen() {
                 ? scheduleDays.map((d) => WEEKDAYS[d]).join("")
                 : "눌러서 알림 설정"
             }
-            onPress={() => router.push("/settings")}
+            onPress={() => { track("home_action_pressed", { action: "schedule_tile" }); router.push("/settings"); }}
           />
         )}
         <SummaryTile

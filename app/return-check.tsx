@@ -93,7 +93,7 @@ export default function ReturnCheckScreen() {
           loading={loading}
         />
         {!allPresent && (
-          <SecondaryButton label="모두 있어요" onPress={() => setPresent(new Set(items.map(i => i.id)))} />
+          <SecondaryButton label="모두 있어요" onPress={() => { track('checklist_all_present', { screen: 'return' }); setPresent(new Set(items.map(i => i.id))); }} />
         )}
       </Actions>
 

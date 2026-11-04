@@ -17,6 +17,7 @@ import {
   recordLateSignal,
 } from '../db/queries';
 import { distanceM as distance } from '../utils/geo';
+import { track } from '../services/analytics';
 
 import { LOCATION_TASK_NAME, GEOFENCE_TASK_NAME } from './taskNames';
 
@@ -137,6 +138,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
   await setAnchor(session.id, latitude, longitude, now, thresholds.geofenceRadius);
 
   await sendLeaveNotification(activeStay.id, itemCount, matchedPlace?.name ?? null);
+  track('leave_notified', { signal: 'A' });
 });
 
 TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }: any) => {
@@ -162,6 +164,7 @@ TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }: any) => {
     if (await getAppStateValue(key)) return;
     await setAppStateValue(key, String(now));
     await sendReturnNotification(session.itemIds.length);
+    track('return_notified');
     return;
   }
 
@@ -211,4 +214,5 @@ TaskManager.defineTask(GEOFENCE_TASK_NAME, async ({ data, error }: any) => {
   });
 
   await sendLeaveNotification(stayId, itemCount, matchedPlace?.name ?? null);
+  track('leave_notified', { signal: 'B' });
 });

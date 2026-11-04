@@ -13,6 +13,7 @@ import { useStayNames } from '../../src/hooks/useStayNames';
 import { StayNameDialog } from '../../src/components/StayNameDialog';
 import { isHomeStay, stayName } from '../../src/services/stayNameService';
 import { colors, type } from '../../src/theme';
+import { track } from '../../src/services/analytics';
 import { WEEKDAYS, formatDateLabel, formatTime, startOfMonth } from '../../src/utils/format';
 import type { LeaveLog, Place, Session, Stay } from '../../src/types';
 
@@ -237,7 +238,7 @@ function MonthCalendar({ year, month, today, selected, marks, onSelect }: {
               <Pressable
                 key={col}
                 style={styles.cell}
-                onPress={() => onSelect(date)}
+                onPress={() => { track('history_day_selected', { has_outing: !!mark }); onSelect(date); }}
                 disabled={future}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSel, disabled: future }}

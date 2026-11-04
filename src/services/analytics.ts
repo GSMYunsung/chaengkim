@@ -33,6 +33,18 @@ type Events = {
   stay_renamed: Record<string, never>;
   dwell_threshold_changed: { minutes: number };
   home_registered: { replaced: boolean };
+  home_action_pressed: { action: 'departure' | 'leave_check' | 'return_check' | 'edit_items' | 'add_item' | 'schedule_tile' };
+  permission_settings_opened: { from: 'home_banner' | 'settings_location' | 'settings_notifications' };
+  checklist_all_present: { screen: 'leave' | 'return' };
+  leave_delay_reported: { delay: string };
+  leave_delay_skipped: Record<string, never>;
+  leave_notified: { signal: 'A' | 'B' };
+  return_notified: Record<string, never>;
+  history_day_selected: { has_outing: boolean };
+  route_map_expanded: Record<string, never>;
+  session_day_toggled: { open: boolean };
+  departure_schedule_saved: { day_count: number };
+  analytics_disabled: Record<string, never>;
 };
 
 export function track<E extends keyof Events>(event: E, ...props: Events[E] extends Record<string, never> ? [] : [Events[E]]) {
@@ -52,6 +64,9 @@ export const analyticsAvailable = !!client;
 
 export async function setAnalyticsEnabled(on: boolean) {
   if (!client) return;
-  if (on) await client.optIn();
-  else await client.optOut();
+  if (on) return client.optIn();
+  // Record the opt-out itself and send it before going quiet.
+  client.capture('analytics_disabled');
+  await client.flush().catch(() => {});
+  await client.optOut();
 }
