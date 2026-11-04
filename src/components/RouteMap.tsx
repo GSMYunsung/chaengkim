@@ -38,7 +38,9 @@ const MAP_ORIGIN = 'https://www.choiyunsung.dev';
 // How long to wait for the Kakao SDK before showing the "couldn't load" state.
 const LOAD_TIMEOUT_MS = 8000;
 
-type Pin = Coord & { color: string; radius: number };
+// Walking past the anchor radius records a point about every minute, so only the start, the
+// stops and the last position get a dot; the line still runs through every point.
+type Pin = Coord & { color: string; radius: number; dot: boolean };
 
 function toPins(coords: Coord[]): Pin[] {
   return coords.map((c, i) => {
@@ -47,7 +49,8 @@ function toPins(coords: Coord[]): Pin[] {
       ...c,
       label: c.label ?? `${i + 1}`,
       color: c.stop ? PIN_COLORS.stop : edge ? PIN_COLORS[edge] : PIN_COLORS.path,
-      radius: c.stop ? 11 : edge ? 9 : 5,
+      radius: c.stop ? 11 : 9,
+      dot: !!(c.stop || edge),
     };
   });
 }
@@ -109,6 +112,7 @@ function buildHtml(initial: Pin[]): string {
         map, path, strokeWeight: 4, strokeColor: PATH_COLOR, strokeOpacity: 0.8, strokeStyle: 'shortdash',
       }));
       pins.forEach((p, i) => {
+        if (!p.dot) return;
         drawn.push(new kakao.maps.CustomOverlay({ map, position: path[i], content: dotHtml(p), zIndex: p.stop ? 3 : 2 }));
         if (p.stop && p.name) {
           drawn.push(new kakao.maps.CustomOverlay({

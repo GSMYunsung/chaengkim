@@ -8,7 +8,6 @@ import { colors, space, type } from '../theme';
 const LEGEND = [
   ['출발', PIN_COLORS.start],
   ['머문 곳', PIN_COLORS.stop],
-  ['지나간 곳', PIN_COLORS.path],
   ['마지막 위치', PIN_COLORS.end],
 ] as const;
 
