@@ -6,7 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { setupNotifications, LEAVE_ACTION_ALL_CHECKED } from '../src/services/notificationService';
 import { getLeaveLogByStayId, updateLeaveLogResponse, pruneOldRecords } from '../src/db/queries';
 import { colors, font } from '../src/theme';
-import { track, trackScreen } from '../src/services/analytics';
+import { track, trackAppOpens, trackScreen } from '../src/services/analytics';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,6 +22,7 @@ export default function RootLayout() {
   const pathname = usePathname();
 
   useEffect(() => { trackScreen(pathname); }, [pathname]);
+  useEffect(() => trackAppOpens(), []);
 
   useEffect(() => {
     setupNotifications();

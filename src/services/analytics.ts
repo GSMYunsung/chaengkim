@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import PostHog from 'posthog-react-native';
 
 // Anonymous usage events: where people drop off, what they press, how often they come back.
@@ -13,11 +14,14 @@ const client = KEY && (!__DEV__ || SEND_IN_DEV)
       host: HOST,
       disableGeoip: true,
       personProfiles: 'never',
-      captureAppLifecycleEvents: true,
+      // Background location tasks also launch the app; the SDK's own lifecycle events would count
+      // those as opens. Opens are recorded by trackAppOpens instead.
+      captureAppLifecycleEvents: false,
     })
   : null;
 
 type Events = {
+  app_opened: Record<string, never>;
   onboarding_step_viewed: { step: number };
   onboarding_permission_answered: { location: boolean };
   onboarding_home_set: Record<string, never>;
@@ -49,6 +53,28 @@ type Events = {
 
 export function track<E extends keyof Events>(event: E, ...props: Events[E] extends Record<string, never> ? [] : [Events[E]]) {
   client?.capture(event, props[0]);
+}
+
+/**
+ * Records an open only when the user brings the app to the screen: the first time it becomes
+ * active (a cold launch can start as 'unknown' or 'inactive'), then on each background → active
+ * change. A launch by a background location task stays in 'background' and records nothing until
+ * the user opens it; pulling down Control Center only goes active → inactive → active, so it
+ * doesn't count either. Returns the unsubscribe function.
+ */
+export function trackAppOpens(): () => void {
+  let last: string | null | undefined = AppState.currentState;
+  let opened = false;
+  const onActive = () => {
+    if (!opened || last === 'background') track('app_opened');
+    opened = true;
+  };
+  if (last === 'active') onActive();
+  const sub = AppState.addEventListener('change', next => {
+    if (next === 'active') onActive();
+    last = next;
+  });
+  return () => sub.remove();
 }
 
 export function trackScreen(pathname: string) {
