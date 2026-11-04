@@ -7,10 +7,14 @@
     "orientation": "portrait",
     "icon": "./assets/icon/icon-1024.png",
     "userInterfaceStyle": "light",
+    "locales": {
+      "ko": "./locales/ko.json"
+    },
     "ios": {
       "bundleIdentifier": "com.yuncastlee.chaengkim",
       "supportsTablet": false,
       "infoPlist": {
+        "CFBundleDevelopmentRegion": "ko",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드에서도 위치를 추적해 자리를 뜰 때 소지품 알림을 드립니다.",
         "NSLocationWhenInUseUsageDescription": "현재 위치를 파악해 체류 장소를 감지합니다.",
         "NSLocationAlwaysUsageDescription": "백그라운드에서도 위치를 추적해 자리를 뜰 때 소지품 알림을 드립니다.",
