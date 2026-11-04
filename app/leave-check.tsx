@@ -96,6 +96,7 @@ export default function LeaveCheckScreen() {
 
   async function handleSaveDelay() {
     if (logId && delay) {
+      track('leave_delay_reported', { delay });
       await updateLeaveLogResponse(logId, delay, responseAction(), [...recovered]);
     }
     router.back();
@@ -122,7 +123,7 @@ export default function LeaveCheckScreen() {
                 disabled={!delay}
               />
               <View style={{ alignItems: 'center' }}>
-                <LinkButton label="이번에는 건너뛰기" onPress={() => router.back()} />
+                <LinkButton label="이번에는 건너뛰기" onPress={() => { track('leave_delay_skipped'); router.back(); }} />
               </View>
             </Actions>
           </>
@@ -194,7 +195,7 @@ export default function LeaveCheckScreen() {
           onPress={confirmFinish}
         />
         {!allChecked && (
-          <SecondaryButton label="모두 있어요" onPress={() => setChecked(new Set(items.map(i => i.id)))} />
+          <SecondaryButton label="모두 있어요" onPress={() => { track('checklist_all_present', { screen: 'leave' }); setChecked(new Set(items.map(i => i.id))); }} />
         )}
       </Actions>
 

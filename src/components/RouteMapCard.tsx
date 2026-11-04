@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable, Modal } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { RouteMap, PIN_COLORS, type Coord } from './RouteMap';
 import { Icon, Text } from './ui';
+import { track } from '../services/analytics';
 import { colors, space, type } from '../theme';
 
 const LEGEND = [
@@ -45,7 +46,7 @@ export function RouteMapCard({ coords, title, summary, height = 240, legend = tr
           <RouteMap height={height} coords={coords} />
           <Pressable
             style={StyleSheet.absoluteFill}
-            onPress={() => setOpen(true)}
+            onPress={() => { track('route_map_expanded'); setOpen(true); }}
             accessibilityRole="button"
             accessibilityLabel={`${title} 지도 크게 보기`}
           >

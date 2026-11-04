@@ -14,6 +14,7 @@ import {
   Text,
 } from '../src/components/ui';
 import { colors, type } from '../src/theme';
+import { track } from '../src/services/analytics';
 import { itemIcon } from '../src/utils/itemIcon';
 import { formatTime } from '../src/utils/format';
 import type { Stay, LeaveLog, Item, Session } from '../src/types';
@@ -96,7 +97,7 @@ export default function SessionResultScreen() {
       <SecondaryButton
         label={showDay ? '당일 기록 접기' : '당일 기록 살펴보기'}
         icon={showDay ? 'chevron-up' : 'map-pinned'}
-        onPress={() => setShowDay(v => !v)}
+        onPress={() => { track('session_day_toggled', { open: !showDay }); setShowDay(v => !v); }}
       />
       {showDay && session && (
         <View style={styles.day}>
