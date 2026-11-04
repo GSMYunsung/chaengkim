@@ -79,8 +79,29 @@ export function trackAppOpens(): () => void {
   return () => sub.remove();
 }
 
+// Readable names so the event list and path insights say "홈 → 출발 체크", not "/ → /departure".
+const SCREEN_NAMES: Record<string, string> = {
+  '/': '홈',
+  '/items': '소지품',
+  '/timeline': '기록',
+  '/settings': '설정',
+  '/onboarding': '온보딩',
+  '/departure': '출발 체크',
+  '/leave-check': '소지품 확인(자리 뜸)',
+  '/return-check': '귀가 체크',
+  '/session-result': '귀가 완료',
+  '/item-edit': '소지품 편집',
+  '/test-lab': '테스트 랩',
+};
+
+let lastScreen: string | null = null;
+
+/** Sends the screen with the one it was reached from, so each event reads as a move. */
 export function trackScreen(pathname: string) {
-  client?.screen(pathname);
+  const name = SCREEN_NAMES[pathname] ?? pathname;
+  if (name === lastScreen) return;
+  client?.screen(name, { from: lastScreen ?? '앱 시작', path: pathname });
+  lastScreen = name;
 }
 
 /** Whether usage events are being sent; false when there is no client at all. */
