@@ -13,7 +13,9 @@ const client = KEY && (!__DEV__ || SEND_IN_DEV)
   ? new PostHog(KEY, {
       host: HOST,
       disableGeoip: true,
-      personProfiles: 'never',
+      // A profile per random install ID (no name or contact) so retention and lifecycle insights,
+      // which skip anonymous events, can show who stopped coming back.
+      personProfiles: 'always',
       // Background location tasks also launch the app; the SDK's own lifecycle events would count
       // those as opens. Opens are recorded by trackAppOpens instead.
       captureAppLifecycleEvents: false,
