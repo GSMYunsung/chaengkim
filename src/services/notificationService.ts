@@ -84,7 +84,7 @@ export async function sendLeaveNotification(
     },
     trigger: null,
   });
-  // The Lock Screen card asks too, with a "다 챙김" button that answers without opening the app.
+  // The Lock Screen card asks too, with a "모두 있어요" button that answers without opening the app.
   await showLeavePrompt(stayId, placeName);
 }
 

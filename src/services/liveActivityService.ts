@@ -1,6 +1,9 @@
 import { Platform } from 'react-native';
-import { addUserInteractionListener } from 'expo-widgets';
-import OutingActivity, { ALL_CHECKED_TARGET, type OutingActivityProps } from '../liveActivity/OutingActivity';
+import { Asset } from 'expo-asset';
+import * as FileSystem from 'expo-file-system/legacy';
+import { addUserInteractionListener, widgetsDirectory } from 'expo-widgets';
+import OutingActivity, { ALL_CHECKED_TARGET, type CardItem, type OutingActivityProps } from '../liveActivity/OutingActivity';
+import { itemSymbol } from '../utils/itemIcon';
 import {
   getActiveSession, getActiveStay, getAppStateValue, getItems, getPlaces, getStay, setAppStateValue,
 } from '../db/queries';
@@ -15,7 +18,13 @@ import type { Session, Stay } from '../types';
 
 const STATE_KEY = 'liveActivityState';
 export const SHOW_PLACE_KEY = 'liveActivityShowPlace';
-const MAX_NAMES = 4;
+const MAX_CHIPS = 3;
+// Bag mascot poses for the card: out walking, asking after a leave, happy once answered.
+const ART = {
+  walk: require('../../assets/bag/bag-walk.png'),
+  question: require('../../assets/bag/bag-question.png'),
+  happy: require('../../assets/bag/bag-happy.png'),
+};
 // Apple's geocoder throttles apps that ask too often; walking moves the stay anchor every
 // ~100m, so a fresh address is asked at most this often and the card says "지금 있는 곳" between.
 const GEOCODE_GAP_MS = 60 * 1000;
@@ -56,12 +65,41 @@ async function readState(sessionId: string): Promise<CardState> {
   };
 }
 
-async function itemsLine(itemIds: string[]): Promise<string> {
+async function cardItems(itemIds: string[]): Promise<{ items: CardItem[]; moreCount: number }> {
   const byId = new Map((await getItems()).map(i => [i.id, i.name]));
   const names = itemIds.map(id => byId.get(id)).filter((n): n is string => !!n);
-  if (!names.length) return '챙길 물건 없음';
-  const shown = names.slice(0, MAX_NAMES).join(' · ');
-  return names.length > MAX_NAMES ? `${shown} 외 ${names.length - MAX_NAMES}개` : shown;
+  return {
+    items: names.slice(0, MAX_CHIPS).map(name => ({ name, symbol: itemSymbol(name) })),
+    moreCount: Math.max(0, names.length - MAX_CHIPS),
+  };
+}
+
+let artCopied: OutingActivityProps['art'] | undefined;
+
+/**
+ * The widget extension can't read the app's bundle, so the bag pictures are copied once into
+ * the folder the app shares with it. Without them the card falls back to a bag symbol.
+ */
+async function bagArt(): Promise<OutingActivityProps['art']> {
+  if (artCopied !== undefined) return artCopied;
+  if (!widgetsDirectory) return (artCopied = null);
+  try {
+    const dir = widgetsDirectory.endsWith('/') ? widgetsDirectory : `${widgetsDirectory}/`;
+    const out = {} as NonNullable<OutingActivityProps['art']>;
+    for (const [pose, module] of Object.entries(ART) as [keyof typeof ART, number][]) {
+      const target = `${dir}bag-${pose}.png`;
+      if (!(await FileSystem.getInfoAsync(target)).exists) {
+        const asset = await Asset.fromModule(module).downloadAsync();
+        if (!asset.localUri) throw new Error(`no local file for ${pose}`);
+        await FileSystem.copyAsync({ from: asset.localUri, to: target });
+      }
+      out[pose] = target;
+    }
+    return (artCopied = out);
+  } catch (e) {
+    if (__DEV__) console.log('[잠금화면 카드] 가방 그림 복사 못 함', e);
+    return null;
+  }
 }
 
 /**
@@ -83,7 +121,8 @@ async function placeLabel(stay: Stay): Promise<string | null> {
 async function render(session: Session, state: CardState): Promise<OutingActivityProps> {
   await setAppStateValue(STATE_KEY, JSON.stringify(state));
   return {
-    items: await itemsLine(session.itemIds),
+    ...(await cardItems(session.itemIds)),
+    art: await bagArt(),
     itemCount: session.itemIds.length,
     outingStart: session.startedAt,
     place: state.place,
@@ -129,7 +168,7 @@ export async function showCurrentStay(stay: Stay): Promise<void> {
   }
 }
 
-/** A leave was detected for this stay: ask on the card, with the "다 챙김" button. */
+/** A leave was detected for this stay: ask on the card, with the "모두 있어요" button. */
 export async function showLeavePrompt(stayId: string, fallbackName: string | null): Promise<void> {
   try {
     await push(async s => {
@@ -150,7 +189,7 @@ export async function markLeaveAnswered(stayId: string, allChecked: boolean): Pr
       if (s.leftStayId !== stayId) return s;
       const d = new Date();
       const time = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-      return { ...s, leftStayId: null, leftPlace: null, checked: allChecked ? `${time} 다 챙겼어요` : `${time} 확인했어요` };
+      return { ...s, leftStayId: null, leftPlace: null, checked: allChecked ? `${time} 모두 챙겼어요` : `${time} 확인했어요` };
     });
   } catch (e) {
     if (__DEV__) console.log('[잠금화면 카드] 답 표시 못 함', e);
@@ -191,7 +230,7 @@ export async function reconcileOutingActivity(): Promise<void> {
   if (!current()) await startOutingActivity(session);
 }
 
-/** Calls `onAllChecked` with the stay id when "다 챙김" is pressed on the card. */
+/** Calls `onAllChecked` with the stay id when "모두 있어요" is pressed on the card. */
 export function listenOutingActivityButtons(onAllChecked: (stayId: string) => void): () => void {
   if (!supported) return () => {};
   const sub = addUserInteractionListener(event => {

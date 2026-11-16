@@ -32,7 +32,7 @@ export default function RootLayout() {
     pruneOldRecords().catch(() => {});
   }, []);
 
-  // Lock Screen card: "다 챙김" on the card records like the notification's "모두 챙김". The card is
+  // Lock Screen card: "모두 있어요" on the card records like the notification's "모두 챙김". The card is
   // matched to the outing whenever the app comes to the screen (starting one only works then).
   useEffect(() => listenOutingActivityButtons(stayId => {
     track('leave_answered_from_live_activity');
