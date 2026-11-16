@@ -154,7 +154,11 @@ export async function startOutingActivity(session: Session): Promise<void> {
   }
 }
 
-/** A new stay began (the background task moved its anchor): show where and since when. */
+/**
+ * A new stay began (the background task moved its anchor): show where and since when. The
+ * "✓ 모두 챙겼어요" of the last answer belongs to the place it was given at, so it clears here
+ * and the card goes back to the plain outing view (anchors move about every 100m on the way).
+ */
 export async function showCurrentStay(stay: Stay): Promise<void> {
   try {
     const place = await placeLabel(stay);
@@ -162,6 +166,7 @@ export async function showCurrentStay(stay: Stay): Promise<void> {
       ...s,
       prevStayId: s.stayId, prevPlace: s.place,
       stayId: stay.id, place, hereSince: stay.arrivedAt,
+      checked: null,
     }));
   } catch (e) {
     if (__DEV__) console.log('[잠금화면 카드] 장소 갱신 못 함', e);
