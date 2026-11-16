@@ -48,7 +48,7 @@ name: "1 온보딩"
 - runFlow:
     file: ../subflows/tap-until.yaml
     env:
-      TAP: "우산 수정"
+      TAP: "우산"
       UNTIL: "소지품 수정"
 - eraseText: 10
 - tapOn: "(?s)우산"
@@ -64,7 +64,7 @@ name: "1 온보딩"
 - runFlow:
     file: ../subflows/tap-until.yaml
     env:
-      TAP: "장우산 수정"
+      TAP: "장우산"
       UNTIL: "이 소지품 삭제"
 - runFlow:
     file: ../subflows/tap-until.yaml
