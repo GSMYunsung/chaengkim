@@ -40,6 +40,43 @@ name: "1 온보딩"
     env:
       NAME: "에어팟"
 - takeScreenshot: 01-items-added
+# 담은 물건을 누르면 편집 화면이 열린다: 잠깐 담은 우산을 고쳤다가 지운다(지갑·열쇠·에어팟만 남김).
+- runFlow:
+    file: ../subflows/onboarding-add-item.yaml
+    env:
+      NAME: "우산"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "우산 수정"
+      UNTIL: "소지품 수정"
+- eraseText: 10
+- tapOn: "(?s)우산"
+- eraseText: 10
+- inputText: "장우산"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "저장"
+      UNTIL: "늘 챙기는 물건부터"
+- assertVisible: "장우산"
+- takeScreenshot: 01-item-renamed
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "장우산 수정"
+      UNTIL: "이 소지품 삭제"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "이 소지품 삭제"
+      UNTIL: "소지품 삭제"
+- runFlow:
+    file: ../subflows/tap-until.yaml
+    env:
+      TAP: "삭제"
+      UNTIL: "늘 챙기는 물건부터"
+- assertNotVisible: "장우산"
 - runFlow:
     file: ../subflows/tap-until.yaml
     env:

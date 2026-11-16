@@ -21,10 +21,15 @@ export function TextInput({ style, ...props }: TextInputProps) {
   return <RNTextInput {...props} style={[styles.font, style]} />;
 }
 
-export function Screen({ children, edges = ['bottom'], header, scroll = true }: {
+/**
+ * A page. `footer` stays pinned at the bottom (above the home indicator) while the content
+ * scrolls, for a screen's main buttons so they don't move as the content changes.
+ */
+export function Screen({ children, edges = ['bottom'], header, footer, scroll = true }: {
   children: React.ReactNode;
   edges?: Edge[];
   header?: React.ReactNode;
+  footer?: React.ReactNode;
   scroll?: boolean;
 }) {
   return (
@@ -42,6 +47,7 @@ export function Screen({ children, edges = ['bottom'], header, scroll = true }: 
       ) : (
         <View style={[styles.content, { flex: 1 }]}>{children}</View>
       )}
+      {footer && <View style={styles.footer}>{footer}</View>}
     </SafeAreaView>
   );
 }
@@ -373,6 +379,7 @@ const styles = StyleSheet.create({
   font: { fontFamily: font },
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: space.screen, paddingTop: 18, paddingBottom: 32 },
+  footer: { paddingHorizontal: space.screen, paddingTop: 10, paddingBottom: 12, gap: 10, backgroundColor: colors.bg },
   tabHeader: {
     minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: space.screen, paddingTop: 6, gap: 10,
