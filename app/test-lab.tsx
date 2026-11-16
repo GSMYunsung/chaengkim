@@ -8,6 +8,7 @@ import { getAppStateValue, setAppStateValue, getActiveSession, createStay, creat
 import { sendLeaveNotification } from '../src/services/notificationService';
 import { startOutingSession, endOutingSession } from '../src/services/sessionService';
 import { showCurrentStay } from '../src/services/liveActivityService';
+import { setAnalyticsPaused } from '../src/services/analytics';
 import { registerAnchorGeofence } from '../src/services/locationService';
 import { exportLeaveLogsToCSV } from '../src/utils/csv';
 import { colors } from '../src/theme';
@@ -86,6 +87,7 @@ export default function TestLabScreen() {
 
   async function toggleTestMode(val: boolean) {
     await setAppStateValue('testMode', val ? 'true' : 'false');
+    setAnalyticsPaused(val);
     setTestMode(val);
   }
 
