@@ -145,7 +145,8 @@ export default function OnboardingScreen() {
                 style={({ pressed }) => [styles.invItem, pressed && { opacity: 0.75 }]}
                 onPress={() => router.push({ pathname: '/item-edit', params: { id: item.id } })}
                 accessibilityRole="button"
-                accessibilityLabel={`${item.name} 수정`}
+                accessibilityLabel={item.name}
+                accessibilityHint="눌러서 이름을 고치거나 지워요"
               >
                 <View>
                   <ItemIcon name={itemIcon(item.name)} />
