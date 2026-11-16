@@ -41,13 +41,13 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
   // so it reads on any wallpaper. Chips and buttons are translucent capsules on that glass:
   // the widget renderer drops views with glassEffect, so Liquid Glass itself can't be used here.
   const c = {
-    platter: '#1C2140A6',
+    platter: '#22252FA6',
     ink: '#FFFFFF',
     sub: '#FFFFFFB8',
-    blue: environment.isLuminanceReduced ? '#C9D1FF' : '#A9B7FF',
+    blue: environment.isLuminanceReduced ? '#D3D8EE' : '#B7C0E6',
     onBlue: '#FFFFFF',
     glassTint: '#FFFFFF1F',
-    blueTint: '#6A81FDD9',
+    blueTint: '#7886C6B3',
   };
   const glass = (fill: string) => background(fill, shapes.capsule());
   const DAY = 24 * 60 * 60 * 1000;
@@ -69,7 +69,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
     : <Image systemName="bag.fill" size={size * 0.5} color={c.blue} />;
   // The Dynamic Island is small and always black: a symbol reads there, the 3D mascot doesn't.
   const islandBag = (size: number) => (
-    <Image systemName={asking ? 'questionmark.circle.fill' : 'bag.fill'} size={size} color="#9AAAFF" />
+    <Image systemName={asking ? 'questionmark.circle.fill' : 'bag.fill'} size={size} color="#AEB7E0" />
   );
 
   const pill = (label: string, tintColor: string, color: string) => (
@@ -148,7 +148,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
         target={`all_checked:${props.leftStayId}`}
         modifiers={[
           buttonStyle('borderedProminent'), buttonBorderShape('capsule'), controlSize('large'),
-          tint('#6A81FD'), font({ size: 14, weight: 'semibold' }), wide,
+          tint('#7886C6'), font({ size: 14, weight: 'semibold' }), wide,
         ]}
       />
       {plain('확인하기', checkLink)}
