@@ -47,7 +47,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
     blue: environment.isLuminanceReduced ? '#D3D8EE' : '#B7C0E6',
     onBlue: '#FFFFFF',
     glassTint: '#FFFFFF1F',
-    blueTint: '#7886C6B3',
+    blueTint: '#6275ECEB',
   };
   const glass = (fill: string) => background(fill, shapes.capsule());
   const DAY = 24 * 60 * 60 * 1000;
@@ -148,7 +148,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
         target={`all_checked:${props.leftStayId}`}
         modifiers={[
           buttonStyle('borderedProminent'), buttonBorderShape('capsule'), controlSize('large'),
-          tint('#7886C6'), font({ size: 14, weight: 'semibold' }), wide,
+          tint('#6275ECEB'), font({ size: 14, weight: 'semibold' }), wide,
         ]}
       />
       {plain('확인하기', checkLink)}
