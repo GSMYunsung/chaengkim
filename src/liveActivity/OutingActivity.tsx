@@ -1,7 +1,7 @@
 import { Button, HStack, Image, Link, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import {
-  activityBackgroundTint, buttonBorderShape, buttonStyle, controlSize, font, foregroundStyle, frame,
-  glassEffect, lineLimit, monospacedDigit, padding, resizable, tint,
+  activityBackgroundTint, background, buttonBorderShape, buttonStyle, controlSize, font, foregroundStyle, frame,
+  lineLimit, monospacedDigit, padding, resizable, shapes, tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { createLiveActivity, type LiveActivityEnvironment } from 'expo-widgets';
 
@@ -38,7 +38,8 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
   'widget';
   // Glass card: a translucent navy tint lets iOS blur the wallpaper through the platter (an
   // empty tint gives the opaque black default). Being always dark glass, text is always light,
-  // so it reads on any wallpaper. Chips and buttons sit on Liquid Glass capsules (iOS 26).
+  // so it reads on any wallpaper. Chips and buttons are translucent capsules on that glass:
+  // the widget renderer drops views with glassEffect, so Liquid Glass itself can't be used here.
   const c = {
     platter: '#1C2140A6',
     ink: '#FFFFFF',
@@ -48,8 +49,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
     glassTint: '#FFFFFF1F',
     blueTint: '#6A81FDD9',
   };
-  const glass = (tint: string, interactive = false) =>
-    glassEffect({ glass: { variant: 'regular', tint, interactive }, shape: 'capsule' });
+  const glass = (fill: string) => background(fill, shapes.capsule());
   const DAY = 24 * 60 * 60 * 1000;
   const asking = !!props.leftStayId;
   const answered = !asking && !!props.checked;
@@ -131,13 +131,13 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
   const filled = (label: string, url: string) => (
     <Link label={label} destination={url} modifiers={[
       font({ size: 14, weight: 'semibold' }), foregroundStyle(c.onBlue), wide,
-      padding({ vertical: 9 }), glass(c.blueTint, true),
+      padding({ vertical: 9 }), glass(c.blueTint),
     ]} />
   );
   const plain = (label: string, url: string) => (
     <Link label={label} destination={url} modifiers={[
       font({ size: 14, weight: 'semibold' }), foregroundStyle(c.blue), wide,
-      padding({ vertical: 9 }), glass(c.glassTint, true),
+      padding({ vertical: 9 }), glass(c.glassTint),
     ]} />
   );
 
@@ -147,7 +147,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
         label="모두 있어요"
         target={`all_checked:${props.leftStayId}`}
         modifiers={[
-          buttonStyle('glassProminent'), buttonBorderShape('capsule'), controlSize('large'),
+          buttonStyle('borderedProminent'), buttonBorderShape('capsule'), controlSize('large'),
           tint('#6A81FD'), font({ size: 14, weight: 'semibold' }), wide,
         ]}
       />
