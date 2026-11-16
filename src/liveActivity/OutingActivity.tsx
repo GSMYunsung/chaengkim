@@ -36,16 +36,17 @@ export const ALL_CHECKED_TARGET = 'all_checked:';
 // src/theme.ts (Pretendard can't be used: the extension draws with the system font).
 const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnvironment) => {
   'widget';
-  // Glass card: the system's translucent Lock Screen platter shows the wallpaper through, and
-  // chips and buttons sit on Liquid Glass capsules (iOS 26). Text follows the platter's scheme.
-  const dark = environment.colorScheme === 'dark';
+  // Glass card: a translucent navy tint lets iOS blur the wallpaper through the platter (an
+  // empty tint gives the opaque black default). Being always dark glass, text is always light,
+  // so it reads on any wallpaper. Chips and buttons sit on Liquid Glass capsules (iOS 26).
   const c = {
-    ink: dark ? '#FFFFFF' : '#232529',
-    sub: dark ? '#FFFFFFB3' : '#232529A6',
-    blue: environment.isLuminanceReduced ? '#C9D1FF' : dark ? '#9AAAFF' : '#6A81FD',
+    platter: '#1C2140A6',
+    ink: '#FFFFFF',
+    sub: '#FFFFFFB8',
+    blue: environment.isLuminanceReduced ? '#C9D1FF' : '#A9B7FF',
     onBlue: '#FFFFFF',
-    glassTint: dark ? '#FFFFFF14' : '#FFFFFF59',
-    blueTint: '#6A81FDCC',
+    glassTint: '#FFFFFF1F',
+    blueTint: '#6A81FDD9',
   };
   const glass = (tint: string, interactive = false) =>
     glassEffect({ glass: { variant: 'regular', tint, interactive }, shape: 'capsule' });
@@ -147,7 +148,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
         target={`all_checked:${props.leftStayId}`}
         modifiers={[
           buttonStyle('glassProminent'), buttonBorderShape('capsule'), controlSize('large'),
-          tint(c.blue), font({ size: 14, weight: 'semibold' }), wide,
+          tint('#6A81FD'), font({ size: 14, weight: 'semibold' }), wide,
         ]}
       />
       {plain('확인하기', checkLink)}
@@ -161,7 +162,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
 
   return {
     banner: (
-      <VStack alignment="leading" spacing={12} modifiers={[padding({ all: 16 }), activityBackgroundTint(null)]}>
+      <VStack alignment="leading" spacing={12} modifiers={[padding({ all: 16 }), activityBackgroundTint(c.platter)]}>
         <HStack spacing={12}>
           {bag(62)}
           {head}
