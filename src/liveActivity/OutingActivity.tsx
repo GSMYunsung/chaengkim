@@ -1,7 +1,7 @@
 import { Button, HStack, Image, Link, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import {
-  activityBackgroundTint, background, buttonBorderShape, buttonStyle, controlSize, font, foregroundStyle, frame,
-  lineLimit, monospacedDigit, padding, resizable, shapes, tint,
+  activityBackgroundTint, buttonBorderShape, buttonStyle, controlSize, font, foregroundStyle, frame,
+  glassEffect, lineLimit, monospacedDigit, padding, resizable, tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { createLiveActivity, type LiveActivityEnvironment } from 'expo-widgets';
 
@@ -36,15 +36,19 @@ export const ALL_CHECKED_TARGET = 'all_checked:';
 // src/theme.ts (Pretendard can't be used: the extension draws with the system font).
 const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnvironment) => {
   'widget';
+  // Glass card: the system's translucent Lock Screen platter shows the wallpaper through, and
+  // chips and buttons sit on Liquid Glass capsules (iOS 26). Text follows the platter's scheme.
   const dark = environment.colorScheme === 'dark';
   const c = {
-    bg: dark ? '#1C1F33' : '#EEF0FF',
-    chip: dark ? '#2B2F4A' : '#FFFFFF',
-    ink: dark ? '#F3F4F8' : '#232529',
-    sub: dark ? '#A3A9BA' : '#646B78',
-    blue: environment.isLuminanceReduced ? '#C9D1FF' : '#6A81FD',
+    ink: dark ? '#FFFFFF' : '#232529',
+    sub: dark ? '#FFFFFFB3' : '#232529A6',
+    blue: environment.isLuminanceReduced ? '#C9D1FF' : dark ? '#9AAAFF' : '#6A81FD',
     onBlue: '#FFFFFF',
+    glassTint: dark ? '#FFFFFF14' : '#FFFFFF59',
+    blueTint: '#6A81FDCC',
   };
+  const glass = (tint: string, interactive = false) =>
+    glassEffect({ glass: { variant: 'regular', tint, interactive }, shape: 'capsule' });
   const DAY = 24 * 60 * 60 * 1000;
   const asking = !!props.leftStayId;
   const answered = !asking && !!props.checked;
@@ -62,11 +66,15 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
   const bag = (size: number) => bagArt
     ? <Image uiImage={bagArt} modifiers={[resizable(), frame({ width: size, height: size * 0.83 })]} />
     : <Image systemName="bag.fill" size={size * 0.5} color={c.blue} />;
+  // The Dynamic Island is small and always black: a symbol reads there, the 3D mascot doesn't.
+  const islandBag = (size: number) => (
+    <Image systemName={asking ? 'questionmark.circle.fill' : 'bag.fill'} size={size} color="#9AAAFF" />
+  );
 
-  const pill = (label: string, fill: string, color: string) => (
+  const pill = (label: string, tintColor: string, color: string) => (
     <Text modifiers={[
       font({ size: 12, weight: 'semibold' }), foregroundStyle(color),
-      padding({ horizontal: 9, vertical: 4 }), background(fill, shapes.capsule()),
+      padding({ horizontal: 9, vertical: 4 }), glass(tintColor),
     ]}>{label}</Text>
   );
 
@@ -76,25 +84,25 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
         <HStack
           key={item.name}
           spacing={4}
-          modifiers={[padding({ horizontal: 10, vertical: 6 }), background(c.chip, shapes.capsule())]}
+          modifiers={[padding({ horizontal: 10, vertical: 6 }), glass(c.glassTint)]}
         >
           <Image systemName={item.symbol as any} size={12} color={c.blue} />
           <Text modifiers={[font({ size: 13, weight: 'medium' }), foregroundStyle(c.ink), lineLimit(1)]}>{item.name}</Text>
         </HStack>
       ))}
-      {props.moreCount > 0 ? pill(`+${props.moreCount}`, c.chip, c.sub) : null}
+      {props.moreCount > 0 ? pill(`+${props.moreCount}`, c.glassTint, c.sub) : null}
       <Spacer />
     </HStack>
   );
 
-  const hereLine = (
+  const hereLine = (color: string) => (
     <HStack spacing={4}>
-      <Image systemName="mappin.and.ellipse" size={12} color={c.sub} />
-      <Text modifiers={[font({ size: 13, weight: 'medium' }), foregroundStyle(c.sub), lineLimit(1)]}>
+      <Image systemName="mappin.and.ellipse" size={12} color={color} />
+      <Text modifiers={[font({ size: 13, weight: 'medium' }), foregroundStyle(color), lineLimit(1)]}>
         {props.place ?? '지금 있는 곳'}
       </Text>
-      <Text modifiers={[font({ size: 13 }), foregroundStyle(c.sub)]}>·</Text>
-      {timer(props.hereSince, 13, c.sub)}
+      <Text modifiers={[font({ size: 13 }), foregroundStyle(color)]}>·</Text>
+      {timer(props.hereSince, 13, color)}
     </HStack>
   );
 
@@ -109,12 +117,12 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
   ) : (
     <VStack alignment="leading" spacing={5}>
       <HStack spacing={6}>
-        {pill('● 외출 중', c.blue, c.onBlue)}
+        {pill('● 외출 중', c.blueTint, c.onBlue)}
         <Spacer />
         {timer(props.outingStart, 15, c.ink)}
       </HStack>
-      {hereLine}
-      {answered ? pill(`✓ ${props.checked}`, c.chip, c.blue) : null}
+      {hereLine(c.sub)}
+      {answered ? pill(`✓ ${props.checked}`, c.glassTint, c.blue) : null}
     </VStack>
   );
 
@@ -122,13 +130,13 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
   const filled = (label: string, url: string) => (
     <Link label={label} destination={url} modifiers={[
       font({ size: 14, weight: 'semibold' }), foregroundStyle(c.onBlue), wide,
-      padding({ vertical: 9 }), background(c.blue, shapes.capsule()),
+      padding({ vertical: 9 }), glass(c.blueTint, true),
     ]} />
   );
   const plain = (label: string, url: string) => (
     <Link label={label} destination={url} modifiers={[
       font({ size: 14, weight: 'semibold' }), foregroundStyle(c.blue), wide,
-      padding({ vertical: 9 }), background(c.chip, shapes.capsule()),
+      padding({ vertical: 9 }), glass(c.glassTint, true),
     ]} />
   );
 
@@ -138,7 +146,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
         label="모두 있어요"
         target={`all_checked:${props.leftStayId}`}
         modifiers={[
-          buttonStyle('borderedProminent'), buttonBorderShape('capsule'), controlSize('large'),
+          buttonStyle('glassProminent'), buttonBorderShape('capsule'), controlSize('large'),
           tint(c.blue), font({ size: 14, weight: 'semibold' }), wide,
         ]}
       />
@@ -153,7 +161,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
 
   return {
     banner: (
-      <VStack alignment="leading" spacing={12} modifiers={[padding({ all: 16 }), activityBackgroundTint(c.bg)]}>
+      <VStack alignment="leading" spacing={12} modifiers={[padding({ all: 16 }), activityBackgroundTint(null)]}>
         <HStack spacing={12}>
           {bag(62)}
           {head}
@@ -162,15 +170,15 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
         {actions}
       </VStack>
     ),
-    compactLeading: bag(24),
+    compactLeading: islandBag(15),
     compactTrailing: asking
       ? <Text modifiers={[font({ size: 13, weight: 'bold' }), foregroundStyle(c.blue)]}>확인?</Text>
       : <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(c.blue)]}>{`${props.itemCount}개`}</Text>,
-    minimal: bag(22),
+    minimal: islandBag(14),
     expandedLeading: (
       <HStack spacing={6} modifiers={[padding({ leading: 6, top: 4 })]}>
-        {bag(36)}
-        <Text modifiers={[font({ size: 14, weight: 'semibold' })]}>{`${props.itemCount}개`}</Text>
+        {islandBag(17)}
+        <Text modifiers={[font({ size: 14, weight: 'semibold' }), foregroundStyle('#FFFFFF')]}>{`${props.itemCount}개`}</Text>
       </HStack>
     ),
     expandedTrailing: (
@@ -179,8 +187,8 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
     expandedBottom: (
       <VStack alignment="leading" spacing={8} modifiers={[padding({ horizontal: 6, bottom: 4 })]}>
         {asking
-          ? <Text modifiers={[font({ size: 15, weight: 'bold' })]}>{`${props.leftPlace ?? '머물던 곳'}에서 일어났어요`}</Text>
-          : hereLine}
+          ? <Text modifiers={[font({ size: 15, weight: 'bold' }), foregroundStyle('#FFFFFF')]}>{`${props.leftPlace ?? '머물던 곳'}에서 일어났어요`}</Text>
+          : hereLine('#FFFFFFB3')}
         {actions}
       </VStack>
     ),
