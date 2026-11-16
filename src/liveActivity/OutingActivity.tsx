@@ -110,7 +110,7 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
   const head = asking ? (
     <VStack alignment="leading" spacing={1}>
       <Text modifiers={[font({ size: 17, weight: 'bold' }), foregroundStyle(c.ink)]}>잠깐,</Text>
-      <Text modifiers={[font({ size: 17, weight: 'bold' }), foregroundStyle(c.blue)]}>다 챙기셨나요?</Text>
+      <Text modifiers={[font({ size: 17, weight: 'bold' }), foregroundStyle('#6275ECEB')]}>다 챙기셨나요?</Text>
       <Text modifiers={[font({ size: 13 }), foregroundStyle(c.sub), lineLimit(1)]}>
         {`${props.leftPlace ?? '머물던 곳'}에서 일어났어요`}
       </Text>
