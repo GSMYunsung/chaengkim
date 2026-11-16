@@ -7,7 +7,7 @@ import { track } from '../src/services/analytics';
 import { setupNotifications } from '../src/services/notificationService';
 import { upsertPlace, setAppStateValue, getItems } from '../src/db/queries';
 import {
-  Screen, Intro, Group, Row, Note, PrimaryButton, SecondaryButton, Actions, ItemIcon, Icon,
+  Screen, Intro, Group, Row, Note, PrimaryButton, SecondaryButton, ItemIcon, Icon,
   Text,
 } from '../src/components/ui';
 import { colors, radius, type } from '../src/theme';
@@ -24,9 +24,11 @@ export default function OnboardingScreen() {
 
   useEffect(() => { track('onboarding_step_viewed', { step }); }, [step]);
 
-  // Reload on focus so items added from the item screen show up when coming back.
+  // Reload on focus so items added, renamed or deleted on the item screen show up when coming
+  // back. Every item counts here, not only the default ones: turning "기본 포함" off while
+  // editing must not make an item look deleted.
   useFocusEffect(useCallback(() => {
-    getItems().then(all => setItems(all.filter(i => i.isDefault)));
+    getItems().then(setItems);
   }, []));
 
   // App Review 5.1.1(iv): whatever the user answers, onboarding moves on without
@@ -75,8 +77,24 @@ export default function OnboardingScreen() {
     router.replace('/');
   }
 
+  // Each step's buttons stay pinned at the bottom so they don't move as the content changes.
+  const footer = step === 0 ? (
+    <PrimaryButton label="계속" onPress={handlePermissions} loading={loading} />
+  ) : step === 1 ? (
+    homeSet || !canLocate ? (
+      <PrimaryButton label="다음" onPress={() => setStep(2)} />
+    ) : (
+      <>
+        <PrimaryButton label="현재 위치를 집으로 등록" onPress={handleSetHome} loading={loading} />
+        <SecondaryButton label="나중에 설정하기" onPress={() => setStep(2)} />
+      </>
+    )
+  ) : (
+    <PrimaryButton label="챙김 시작하기" onPress={handleFinish} />
+  );
+
   return (
-    <Screen edges={['top', 'bottom']}>
+    <Screen edges={['top', 'bottom']} footer={footer}>
       <View style={styles.progress} accessibilityLabel={`${step + 1} / 3 단계`}>
         {[0, 1, 2].map(i => (
           <View key={i} style={[styles.bar, step >= i && styles.barOn]} />
@@ -95,9 +113,6 @@ export default function OnboardingScreen() {
             <Row icon="map-pin" title="위치" subtitle="머문 장소를 떠나는 순간을 알 수 있도록" />
           </Group>
           <Note>사용 중 위치 → 항상 위치 순서로 요청해요. 물건 자체를 감지하지는 않아요.</Note>
-          <Actions>
-            <PrimaryButton label="계속" onPress={handlePermissions} loading={loading} />
-          </Actions>
         </>
       )}
 
@@ -117,18 +132,6 @@ export default function OnboardingScreen() {
             {homeSet && <Icon name="check" size={20} color={colors.blue} />}
           </View>
           <Note>집은 자리 뜰 때 알림에서 자동으로 제외돼요.</Note>
-          <Actions>
-            {homeSet ? (
-              <PrimaryButton label="다음" onPress={() => setStep(2)} />
-            ) : canLocate ? (
-              <>
-                <PrimaryButton label="현재 위치를 집으로 등록" onPress={handleSetHome} loading={loading} />
-                <SecondaryButton label="나중에 설정하기" onPress={() => setStep(2)} />
-              </>
-            ) : (
-              <PrimaryButton label="다음" onPress={() => setStep(2)} />
-            )}
-          </Actions>
         </>
       )}
 
@@ -137,10 +140,21 @@ export default function OnboardingScreen() {
           <Intro mascot="packing" title="늘 챙기는 물건부터" subtitle="나중에 언제든 추가하거나 바꿀 수 있어요." />
           <View style={styles.inventory}>
             {items.map(item => (
-              <View key={item.id} style={styles.invItem}>
-                <ItemIcon name={itemIcon(item.name)} />
+              <Pressable
+                key={item.id}
+                style={({ pressed }) => [styles.invItem, pressed && { opacity: 0.75 }]}
+                onPress={() => router.push({ pathname: '/item-edit', params: { id: item.id } })}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.name} 수정`}
+              >
+                <View>
+                  <ItemIcon name={itemIcon(item.name)} />
+                  <View style={styles.editBadge}>
+                    <Icon name="pencil" size={10} color={colors.blue} />
+                  </View>
+                </View>
                 <Text style={styles.invName} numberOfLines={2}>{item.name}</Text>
-              </View>
+              </Pressable>
             ))}
             <Pressable
               style={({ pressed }) => [styles.invItem, pressed && { opacity: 0.75 }]}
@@ -154,9 +168,7 @@ export default function OnboardingScreen() {
               <Text style={[styles.invName, { color: colors.blue }]}>추가</Text>
             </Pressable>
           </View>
-          <Actions>
-            <PrimaryButton label="챙김 시작하기" onPress={handleFinish} />
-          </Actions>
+          <Note>물건을 누르면 이름을 고치거나 지울 수 있어요.</Note>
         </>
       )}
     </Screen>
@@ -179,4 +191,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderStyle: 'dashed', borderColor: colors.checkedBorder,
   },
   invName: { fontSize: 12, lineHeight: 17, fontWeight: '500', color: colors.ink, textAlign: 'center' },
+  editBadge: {
+    position: 'absolute', right: -5, bottom: -4, width: 18, height: 18, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg,
+    borderWidth: 1, borderColor: colors.checkedBorder,
+  },
 });

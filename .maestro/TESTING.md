@@ -13,7 +13,7 @@
 
 | 화면(소스) | 시나리오 |
 |---|---|
-| `app/onboarding.tsx` (3단계 "+ 추가", 0개면 알림 → `app/item-edit.tsx`) | 00 준비, 01 온보딩, 13 위치 거부 + `subflows/onboarding-add-item.yaml` |
+| `app/onboarding.tsx` (버튼은 화면 아래 고정, 3단계 "+ 추가"·물건 누르면 수정/삭제, 0개면 알림 → `app/item-edit.tsx`) | 00 준비, 01 온보딩, 13 위치 거부 + `subflows/onboarding-add-item.yaml` |
 | `src/db/database.ts` 초기 데이터(기본 물건 없음) | 01이 지갑·열쇠·에어팟을 직접 담고 05~09가 이 물건을 쓴다 |
 | `app/(tabs)/index.tsx` 홈 (외출 전/중, 지금 출발, 테스트 랩 버튼, 위치 꺼짐 안내) | 02, 05, 07, 08, 09, 10, 13 |
 | `app/(tabs)/_layout.tsx` 탭 라벨 | 03, 04, 05, 07, 08, 10, 11, 12 |
