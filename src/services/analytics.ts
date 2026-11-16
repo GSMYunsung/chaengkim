@@ -34,6 +34,8 @@ type Events = {
   outing_started: { item_count: number };
   notification_opened: { type: string };
   leave_answered_from_notification: Record<string, never>;
+  leave_answered_from_live_activity: Record<string, never>;
+  live_activity_place_toggled: { on: boolean };
   leave_check_completed: { result: string; item_count: number; recovered_count: number };
   return_check_completed: { item_count: number; missing_count: number };
   stay_renamed: Record<string, never>;

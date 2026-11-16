@@ -1,10 +1,13 @@
 import '../src/tasks/backgroundTasks';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { setupNotifications, LEAVE_ACTION_ALL_CHECKED } from '../src/services/notificationService';
-import { getLeaveLogByStayId, updateLeaveLogResponse, pruneOldRecords } from '../src/db/queries';
+import { pruneOldRecords } from '../src/db/queries';
+import { answerLeaveAllChecked } from '../src/services/leaveAnswerService';
+import { listenOutingActivityButtons, reconcileOutingActivity } from '../src/services/liveActivityService';
 import { colors, font } from '../src/theme';
 import { track, trackAppOpens, trackScreen } from '../src/services/analytics';
 
@@ -29,6 +32,18 @@ export default function RootLayout() {
     pruneOldRecords().catch(() => {});
   }, []);
 
+  // Lock Screen card: "모두 있어요" on the card records like the notification's "모두 챙김". The card is
+  // matched to the outing whenever the app comes to the screen (starting one only works then).
+  useEffect(() => listenOutingActivityButtons(stayId => {
+    track('leave_answered_from_live_activity');
+    answerLeaveAllChecked(stayId).catch(() => {});
+  }), []);
+  useEffect(() => {
+    if (AppState.currentState === 'active') reconcileOutingActivity().catch(() => {});
+    const sub = AppState.addEventListener('change', s => { if (s === 'active') reconcileOutingActivity().catch(() => {}); });
+    return () => sub.remove();
+  }, []);
+
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as any;
@@ -39,9 +54,7 @@ export default function RootLayout() {
         if (response.actionIdentifier === LEAVE_ACTION_ALL_CHECKED) {
           // "모두 챙김" answered from the notification itself: record it without opening a screen.
           track('leave_answered_from_notification');
-          getLeaveLogByStayId(data.stayId).then(log => {
-            if (log && !log.action) updateLeaveLogResponse(log.id, undefined, 'allChecked', []);
-          });
+          answerLeaveAllChecked(data.stayId).catch(() => {});
           return;
         }
         router.push({ pathname: '/leave-check', params: { stayId: data.stayId } });

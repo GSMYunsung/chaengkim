@@ -1,5 +1,6 @@
 import { getPlaces, setStayCustomName, setStayPlace, upsertPlace } from '../db/queries';
 import { distanceM } from '../utils/geo';
+import { refreshOutingActivity } from './liveActivityService';
 import type { Place, Stay } from '../types';
 
 const SAVED_PLACE_RADIUS_M = 100;
@@ -11,6 +12,8 @@ const SAVED_PLACE_RADIUS_M = 100;
  */
 export async function renameStay(stay: Stay, name: string): Promise<void> {
   await setStayCustomName(stay.id, name);
+  // The Lock Screen card shows the current stay by this name from now on.
+  refreshOutingActivity().catch(() => {});
   if (stay.placeId) return;
 
   const places = await getPlaces();

@@ -18,6 +18,7 @@ import {
 } from '../db/queries';
 import { distanceM as distance } from '../utils/geo';
 import { track } from '../services/analytics';
+import { showCurrentStay } from '../services/liveActivityService';
 
 import { LOCATION_TASK_NAME, GEOFENCE_TASK_NAME } from './taskNames';
 
@@ -42,6 +43,7 @@ async function setAnchor(sessionId: string, lat: number, lng: number, now: numbe
   } catch (e) {
     console.error('Geofence register error:', e);
   }
+  await showCurrentStay(stay);
   return stay;
 }
 

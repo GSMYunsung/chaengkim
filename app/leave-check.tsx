@@ -7,6 +7,7 @@ import {
 import { lookupPlaceName } from '../src/services/placeLookup';
 import { isHomeStay } from '../src/services/stayNameService';
 import { track } from '../src/services/analytics';
+import { markLeaveAnswered } from '../src/services/liveActivityService';
 import { StayNameDialog } from '../src/components/StayNameDialog';
 import {
   Screen, Intro, SectionHeader, PrimaryButton, LinkButton, Actions, Icon, Pills, Counter, Em,
@@ -85,6 +86,7 @@ export default function LeaveCheckScreen() {
 
   async function finish() {
     if (logId) await updateLeaveLogResponse(logId, undefined, responseAction(), [...recovered]);
+    if (stay) await markLeaveAnswered(stay.id, responseAction() === 'allChecked');
     track('leave_check_completed', { result: responseAction(), item_count: items.length, recovered_count: recovered.size });
     setStep('done');
   }

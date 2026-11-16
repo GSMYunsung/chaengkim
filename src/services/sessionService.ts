@@ -1,5 +1,6 @@
 import { createSession, endSession, getActiveSession, pruneOldRecords } from '../db/queries';
 import { startTracking, stopTracking } from './locationService';
+import { endOutingActivity, startOutingActivity } from './liveActivityService';
 import type { Session } from '../types';
 
 export async function startOutingSession(
@@ -12,12 +13,14 @@ export async function startOutingSession(
   // Without location permission the outing still runs: the manual leave and return
   // checks work, only the automatic leave alerts are off (home shows a note).
   await startTracking().catch(() => {});
+  await startOutingActivity(session);
   return session;
 }
 
 export async function endOutingSession(sessionId: string): Promise<void> {
   await endSession(sessionId);
   await stopTracking();
+  await endOutingActivity();
   // History keeps the latest days only; an outing ending is a natural moment to trim it.
   await pruneOldRecords().catch(() => {});
 }
