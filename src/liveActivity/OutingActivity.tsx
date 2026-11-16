@@ -1,7 +1,7 @@
 import { Button, HStack, Image, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import {
-  activityBackgroundTint, background, buttonBorderShape, buttonStyle, controlSize, font, foregroundStyle, frame,
-  lineLimit, monospacedDigit, padding, resizable, shapes, tint, widgetURL,
+  activityBackgroundTint, buttonBorderShape, buttonStyle, controlSize, fixedSize, font, foregroundStyle, frame,
+  lineLimit, monospacedDigit, padding, resizable, tint, widgetURL,
 } from '@expo/ui/swift-ui/modifiers';
 import { createLiveActivity, type LiveActivityEnvironment } from 'expo-widgets';
 
@@ -31,108 +31,75 @@ export type OutingActivityProps = {
 /** Button target for "모두 있어요"; the stay id follows the colon so the answer can't hit another stay. */
 export const ALL_CHECKED_TARGET = 'all_checked:';
 
-// Layout rules (Apple HIG for Live Activities, and how Uber and Flighty apply them):
-// - one hero per state: "what I carry" while out, "did you pack everything?" after a leave
-// - a button only when an answer is needed, and only one; otherwise tapping opens the right screen
-// - the card is short while staying and grows when it asks
-// - 14pt margins, medium-or-heavier text, the app's blue and bag mascot without a container
+// Layout (after ParkMobile's card, within Apple's HIG): a small mark and the carried items on
+// top, one big live number as the hero, a short caption under it. A button only when an answer
+// is needed, and only one; otherwise tapping the card opens the right screen.
 //
 // Everything the card uses must live inside the 'widget' function: it runs in the widget
 // extension's own runtime, which only gets the function body and its props.
 const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnvironment) => {
   'widget';
   // Translucent navy glass: iOS blurs the wallpaper through it, and light text reads on any
-  // wallpaper. (Views with glassEffect aren't drawn by the widget renderer, so capsules are plain.)
+  // wallpaper. (Views with glassEffect aren't drawn by the widget renderer.)
   const c = {
     platter: '#1C2140A6',
     ink: '#FFFFFF',
-    sub: '#FFFFFFB8',
+    sub: '#FFFFFFA6',
     blue: environment.isLuminanceReduced ? '#C9D1FF' : '#A9B7FF',
     brand: '#6A81FD',
-    chip: '#FFFFFF1F',
   };
-  const DAY = 24 * 60 * 60 * 1000;
+  // Timers count up to this; fixedSize sizes them for "9:59:59" instead of the whole row.
+  const SPAN = 10 * 60 * 60 * 1000;
   const asking = !!props.leftStayId;
   const answered = !asking && !!props.checked;
   const link = asking ? `chaengkim://leave-check?stayId=${props.leftStayId}` : 'chaengkim://';
 
-  const timer = (start: number, size: number, color: string) => (
+  const timer = (start: number, size: number, color: string, weight: 'semibold' | 'bold' = 'semibold') => (
     <Text
-      timerInterval={{ lower: new Date(start), upper: new Date(start + DAY) }}
+      timerInterval={{ lower: new Date(start), upper: new Date(start + SPAN) }}
       countsDown={false}
-      modifiers={[font({ size, weight: 'semibold' }), monospacedDigit(), foregroundStyle(color)]}
+      modifiers={[font({ size, weight }), monospacedDigit(), foregroundStyle(color), fixedSize()]}
     />
   );
 
   const art = props.art ? (asking ? props.art.question : answered ? props.art.happy : props.art.walk) : null;
-  const bag = art
-    ? <Image uiImage={art} modifiers={[resizable(), frame({ width: 52, height: 43 })]} />
-    : <Image systemName="bag.fill" size={26} color={c.blue} />;
+  const mark = art
+    ? <Image uiImage={art} modifiers={[resizable(), frame({ width: 34, height: 28 })]} />
+    : <Image systemName="bag.fill" size={20} color={c.blue} />;
 
-  const chips = (
-    <HStack spacing={6}>
-      {props.items.map(item => (
-        <HStack
-          key={item.name}
-          spacing={4}
-          modifiers={[padding({ horizontal: 10, vertical: 6 }), background(c.chip, shapes.capsule())]}
-        >
-          <Image systemName={item.symbol as any} size={12} color={c.blue} />
-          <Text modifiers={[font({ size: 13, weight: 'medium' }), foregroundStyle(c.ink), lineLimit(1)]}>{item.name}</Text>
-        </HStack>
-      ))}
-      {props.moreCount > 0 ? (
-        <Text modifiers={[
-          font({ size: 13, weight: 'medium' }), foregroundStyle(c.sub),
-          padding({ horizontal: 10, vertical: 6 }), background(c.chip, shapes.capsule()),
-        ]}>{`+${props.moreCount}`}</Text>
-      ) : null}
+  // Top right: the carried items as symbols and the count, like ParkMobile's zone and car.
+  const carried = (
+    <HStack spacing={7}>
+      {props.items.map(item => <Image key={item.name} systemName={item.symbol as any} size={15} color={c.blue} />)}
+      <Text modifiers={[font({ size: 15, weight: 'semibold' }), foregroundStyle(c.ink)]}>
+        {props.moreCount > 0 ? `+${props.moreCount}` : `${props.itemCount}개`}
+      </Text>
+    </HStack>
+  );
+
+  const caption = (label: string, color = c.sub) => (
+    <Text modifiers={[font({ size: 14, weight: 'medium' }), foregroundStyle(color), lineLimit(1)]}>{label}</Text>
+  );
+
+  const stayingHero = (
+    <HStack spacing={8}>
+      {timer(props.hereSince, 44, c.ink, 'bold')}
       <Spacer />
-    </HStack>
-  );
-
-  const placeLine = (color: string) => (
-    <HStack spacing={4}>
-      <Image systemName="mappin" size={12} color={color} />
-      <Text modifiers={[font({ size: 13, weight: 'medium' }), foregroundStyle(color), lineLimit(1)]}>
-        {props.place ?? '지금 있는 곳'}
-      </Text>
-      <Text modifiers={[font({ size: 13, weight: 'medium' }), foregroundStyle(color)]}>·</Text>
-      {timer(props.hereSince, 13, color)}
-    </HStack>
-  );
-
-  // Hero line while out: "3개 챙겨서 외출 중", the count in blue.
-  const outHero = props.itemCount > 0 ? (
-    <HStack spacing={0}>
-      <Text modifiers={[font({ size: 17, weight: 'bold' }), foregroundStyle(c.blue)]}>{`${props.itemCount}개`}</Text>
-      <Text modifiers={[font({ size: 17, weight: 'bold' }), foregroundStyle(c.ink)]}> 챙겨서 외출 중</Text>
-    </HStack>
-  ) : <Text modifiers={[font({ size: 17, weight: 'bold' }), foregroundStyle(c.ink)]}>외출 중</Text>;
-
-  const askHero = (
-    <VStack alignment="leading" spacing={2}>
-      <Text modifiers={[font({ size: 20, weight: 'bold' }), foregroundStyle(c.ink)]}>다 챙기셨나요?</Text>
-      <Text modifiers={[font({ size: 13, weight: 'medium' }), foregroundStyle(c.sub), lineLimit(1)]}>
-        {`${props.leftPlace ?? '머물던 곳'}에서 일어났어요`}
-      </Text>
-    </VStack>
-  );
-
-  const statusLine = answered
-    ? <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(c.blue)]}>{`✓ ${props.checked}`}</Text>
-    : placeLine(c.sub);
-
-  const outHead = (
-    <VStack alignment="leading" spacing={3}>
-      <HStack spacing={8}>
-        {outHero}
-        <Spacer />
-        {timer(props.outingStart, 15, c.sub)}
+      <HStack spacing={5}>
+        <Text modifiers={[font({ size: 15, weight: 'medium' }), foregroundStyle(c.sub)]}>외출</Text>
+        {timer(props.outingStart, 20, c.ink)}
       </HStack>
-      {statusLine}
-    </VStack>
+    </HStack>
   );
+
+  const askingHero = (
+    <Text modifiers={[font({ size: 28, weight: 'bold' }), foregroundStyle(c.ink)]}>다 챙기셨나요?</Text>
+  );
+
+  const stayingCaption = answered
+    ? caption(`✓ ${props.checked}`, c.blue)
+    : caption(props.place ? `${props.place}에 머문 시간` : '지금 있는 곳에 머문 시간');
+  const askingCaption = caption(`${props.leftPlace ?? '머물던 곳'}에서 일어났어요`);
 
   // The one control on the card, shown only while a leave waits for an answer.
   const answer = (
@@ -153,15 +120,17 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
     banner: (
       <VStack
         alignment="leading"
-        spacing={asking ? 12 : 10}
+        spacing={4}
         modifiers={[padding({ all: 14 }), activityBackgroundTint(c.platter), widgetURL(link)]}
       >
-        <HStack spacing={12}>
-          {bag}
-          {asking ? askHero : outHead}
+        <HStack>
+          {mark}
+          <Spacer />
+          {carried}
         </HStack>
-        {chips}
-        {asking ? answer : null}
+        {asking ? askingHero : stayingHero}
+        {asking ? askingCaption : stayingCaption}
+        {asking ? <VStack modifiers={[padding({ top: 8 })]}>{answer}</VStack> : null}
       </VStack>
     ),
     // Dynamic Island: one piece of information across the camera — the bag and how many items.
@@ -173,21 +142,16 @@ const OutingActivity = (props: OutingActivityProps, environment: LiveActivityEnv
       <Text modifiers={[font({ size: 14, weight: 'bold' }), foregroundStyle(c.blue), monospacedDigit()]}>{islandValue}</Text>
     ),
     expandedLeading: (
-      <HStack spacing={6} modifiers={[padding({ leading: 4 })]}>
+      <HStack modifiers={[padding({ leading: 4 })]}>
         <Image systemName={islandSymbol} size={17} color={c.blue} />
-        <Text modifiers={[font({ size: 15, weight: 'bold' }), foregroundStyle(c.ink)]}>
-          {asking ? '확인' : `${props.itemCount}개`}
-        </Text>
       </HStack>
     ),
-    expandedTrailing: (
-      <HStack modifiers={[padding({ trailing: 4 })]}>{timer(props.outingStart, 15, c.sub)}</HStack>
-    ),
+    expandedTrailing: <HStack modifiers={[padding({ trailing: 4 })]}>{carried}</HStack>,
     expandedBottom: (
-      <VStack alignment="leading" spacing={10} modifiers={[padding({ horizontal: 4, bottom: 2 }), widgetURL(link)]}>
-        {asking ? askHero : statusLine}
-        {chips}
-        {asking ? answer : null}
+      <VStack alignment="leading" spacing={4} modifiers={[padding({ horizontal: 4, bottom: 2 }), widgetURL(link)]}>
+        {asking ? askingHero : stayingHero}
+        {asking ? askingCaption : stayingCaption}
+        {asking ? <VStack modifiers={[padding({ top: 6 })]}>{answer}</VStack> : null}
       </VStack>
     ),
   };
