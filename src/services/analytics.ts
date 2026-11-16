@@ -1,5 +1,6 @@
 import { AppState } from 'react-native';
 import PostHog from 'posthog-react-native';
+import { getAppStateValue } from '../db/queries';
 
 // Anonymous usage events: where people drop off, what they press, how often they come back.
 // Only counts and kinds of actions are sent — never coordinates, place names or item names.
@@ -21,6 +22,24 @@ const client = KEY && (!__DEV__ || SEND_IN_DEV)
       captureAppLifecycleEvents: false,
     })
   : null;
+
+// Test mode (the test lab switch) drives fake outings and leaves; those must not count as real
+// usage either, so nothing is sent while it's on. The saved value is read once at launch (also
+// for launches by background tasks) and every event waits for it, so none slips out before.
+let paused = false;
+const pauseLoaded = client
+  ? getAppStateValue('testMode').then(v => { paused = v === 'true'; }).catch(() => {})
+  : Promise.resolve();
+
+/** Called when the test mode switch changes. */
+export function setAnalyticsPaused(on: boolean) {
+  paused = on;
+}
+
+function send(run: (c: PostHog) => void) {
+  if (!client) return;
+  pauseLoaded.then(() => { if (!paused) run(client); });
+}
 
 type Events = {
   app_opened: Record<string, never>;
@@ -56,7 +75,7 @@ type Events = {
 };
 
 export function track<E extends keyof Events>(event: E, ...props: Events[E] extends Record<string, never> ? [] : [Events[E]]) {
-  client?.capture(event, props[0]);
+  send(c => c.capture(event, props[0]));
 }
 
 /**
@@ -102,7 +121,8 @@ let lastScreen: string | null = null;
 export function trackScreen(pathname: string) {
   const name = SCREEN_NAMES[pathname] ?? pathname;
   if (name === lastScreen) return;
-  client?.screen(name, { from: lastScreen ?? '앱 시작', path: pathname });
+  const from = lastScreen ?? '앱 시작';
+  send(c => c.screen(name, { from, path: pathname }));
   lastScreen = name;
 }
 
