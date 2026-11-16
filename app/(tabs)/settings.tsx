@@ -1,17 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Pressable, Alert, Linking, Switch } from 'react-native';
+import { View, StyleSheet, Pressable, Alert, Linking, Switch, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import {
   getSchedules, upsertSchedule, deleteSchedule, getHomePlace, upsertPlace,
-  getDwellThresholdMin, setAppStateValue, DWELL_OPTIONS,
+  getDwellThresholdMin, getAppStateValue, setAppStateValue, DWELL_OPTIONS,
 } from '../../src/db/queries';
 import {
   scheduleWeeklyDepartureNotification, cancelDepartureNotification,
 } from '../../src/services/notificationService';
 import { checkPermissions } from '../../src/services/locationService';
 import { track, analyticsAvailable, isAnalyticsEnabled, setAnalyticsEnabled } from '../../src/services/analytics';
+import { refreshOutingActivity, SHOW_PLACE_KEY } from '../../src/services/liveActivityService';
 import { Screen, TabHeader, SectionHeader, Group, Row, Icon, Note, Pills, Text, TextInput } from '../../src/components/ui';
 import { colors } from '../../src/theme';
 import { WEEKDAYS } from '../../src/utils/format';
@@ -34,13 +35,16 @@ export default function SettingsScreen() {
   const [atHome, setAtHome] = useState(false);
   const [perm, setPerm] = useState({ location: false, notifications: false });
   const [sharing, setSharing] = useState(isAnalyticsEnabled());
+  const [showPlace, setShowPlace] = useState(true);
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
   async function load() {
-    const [sched, d, h, loc, notif] = await Promise.all([
+    const [sched, d, h, loc, notif, placeSetting] = await Promise.all([
       getSchedules(), getDwellThresholdMin(), getHomePlace(), checkPermissions(), Notifications.getPermissionsAsync(),
+      getAppStateValue(SHOW_PLACE_KEY),
     ]);
+    setShowPlace(placeSetting !== 'off');
     const enabled = sched.filter(s => s.enabled);
     setSchedules(sched);
     setTime(enabled[0]?.time ?? sched[0]?.time ?? '08:30');
@@ -221,6 +225,31 @@ export default function SettingsScreen() {
         <Row title="알림 허용" subtitle="출발과 자리 이동 때 알려드려요" right={status(perm.notifications)} onPress={() => { track('permission_settings_opened', { from: 'settings_notifications' }); Linking.openSettings(); }} />
       </Group>
       <Note>권한은 기기 설정에서 바꿀 수 있어요. 항목을 누르면 설정으로 이동해요.</Note>
+
+      {Platform.OS === 'ios' && (
+        <>
+          <SectionHeader title="잠금화면" />
+          <Group>
+            <Row
+              title="머무는 곳 보여주기"
+              subtitle="외출 중 잠금화면 카드에 지금 있는 곳 이름을 보여줘요"
+              right={
+                <Switch
+                  value={showPlace}
+                  onValueChange={async on => {
+                    setShowPlace(on);
+                    track('live_activity_place_toggled', { on });
+                    await setAppStateValue(SHOW_PLACE_KEY, on ? 'on' : 'off');
+                    await refreshOutingActivity();
+                  }}
+                  trackColor={{ true: colors.blue }}
+                  accessibilityLabel="잠금화면에 머무는 곳 보여주기"
+                />
+              }
+            />
+          </Group>
+        </>
+      )}
 
       {analyticsAvailable && (
         <>

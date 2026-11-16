@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import { getAppStateValue, setAppStateValue, getActiveSession, createStay, createLeaveLog, getAllLeaveLogs, getActiveStay, getItems } from '../src/db/queries';
 import { sendLeaveNotification } from '../src/services/notificationService';
 import { startOutingSession, endOutingSession } from '../src/services/sessionService';
+import { showCurrentStay } from '../src/services/liveActivityService';
 import { registerAnchorGeofence } from '../src/services/locationService';
 import { exportLeaveLogsToCSV } from '../src/utils/csv';
 import { colors } from '../src/theme';
@@ -146,6 +147,7 @@ export default function TestLabScreen() {
     setActiveStayId(stay.id);
     await setAppStateValue('anchorTime', String(Date.now()));
     await registerAnchorGeofence(stay.id, latitude, longitude, testMode ? 30 : 150).catch(() => {});
+    await showCurrentStay(stay);
     const src = mockCoord ? `가상 위치 (${mockCoord.label ?? ''})` : '실제 GPS';
     Alert.alert('앵커 설정', `${src}\n${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
     await loadState();

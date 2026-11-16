@@ -34,6 +34,11 @@ name: "12 설정"
 - tapOn: "30분"
 - takeScreenshot: 12-settings
 - waitForAnimationToEnd
+# 잠금화면 카드의 장소 표시 스위치(iOS)가 있다. 카드 자체는 시뮬레이터 잠금화면에서 확인할 수 없어 폰에서 본다.
+- scrollUntilVisible:
+    element: "(?s).*머무는 곳 보여주기.*"
+    direction: DOWN
+- assertVisible: "(?s).*머무는 곳 보여주기.*"
 - runFlow:
     file: ../subflows/tap-tab.yaml
     env:

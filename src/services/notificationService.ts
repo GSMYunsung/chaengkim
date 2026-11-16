@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { showLeavePrompt } from './liveActivityService';
 
 export const LEAVE_ACTION_ALL_CHECKED = 'ALL_CHECKED';
 
@@ -83,6 +84,8 @@ export async function sendLeaveNotification(
     },
     trigger: null,
   });
+  // The Lock Screen card asks too, with a "다 챙김" button that answers without opening the app.
+  await showLeavePrompt(stayId, placeName);
 }
 
 export async function sendReturnNotification(itemCount: number): Promise<void> {

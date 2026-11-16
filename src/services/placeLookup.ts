@@ -91,7 +91,7 @@ async function kakaoBuildingName(lat: number, lng: number, calls: Calls): Promis
 }
 
 
-async function reverseGeocodeName(lat: number, lng: number): Promise<string | null> {
+export async function reverseGeocodeName(lat: number, lng: number): Promise<string | null> {
   const [r] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
   if (!r) return null;
   return r.name ?? ([r.district, r.street].filter(Boolean).join(' ') || null);
