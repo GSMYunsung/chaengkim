@@ -148,7 +148,8 @@ export async function startOutingActivity(session: Session): Promise<void> {
   try {
     for (const old of OutingActivity.getInstances()) await old.end('immediate');
     const state = await readState(session.id);
-    OutingActivity.start(await render(session, { ...state, hereSince: session.startedAt }), 'chaengkim://');
+    // No start URL: the layout sets its own per state (home, or the leave check while asking).
+    OutingActivity.start(await render(session, { ...state, hereSince: session.startedAt }));
   } catch (e) {
     if (__DEV__) console.log('[잠금화면 카드] 시작 못 함', e);
   }
